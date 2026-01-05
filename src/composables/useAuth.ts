@@ -34,7 +34,7 @@ export function useAuth() {
 
     // 2. Iniciar Sesión
     const login = () => {
-        const callbackUrl = encodeURIComponent('http://localhost:8000/api/auth/callback');
+        const callbackUrl = encodeURIComponent(import.meta.env.VITE_API_URL + '/auth/callback');
         window.location.href = `https://modulo-seguridad.sistemanh.shop/login?redirect_url=${callbackUrl}`;
     };
 
