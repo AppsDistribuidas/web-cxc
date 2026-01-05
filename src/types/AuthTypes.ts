@@ -1,17 +1,24 @@
+// Define cómo es el usuario que viene del API
+export interface ApiUser {
+    username: string;
+    email: string;
+    dni: string;
+}
+
+// Define la función (permiso)
 export interface Funcion {
     funcion_id: number;
     nombre: string;
 }
 
-export interface UserData {
-    usuario: {
-        username: string;
-        email?: string;
-        id_externo?: any;
-    };
-    modulo: {
-        modulo_id: number;
-        nombre: string;
-        funciones: Funcion[];
-    };
+// Define el módulo
+export interface Modulo {
+    modulo_id: number;
+    nombre: string;
+    funciones: Funcion[];
+}
+
+// --- ESTADO GLOBAL ---
+export interface UserData extends ApiUser {
+    modulo: Modulo;
 }

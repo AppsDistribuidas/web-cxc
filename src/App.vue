@@ -9,7 +9,7 @@ const { isAuthenticated, logout, user } = useAuth();
   <nav v-if="isAuthenticated" class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm">
     <div class="container">
       <a class="navbar-brand" href="#">Sistema CXC</a>
-      
+
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -25,7 +25,7 @@ const { isAuthenticated, logout, user } = useAuth();
         </ul>
 
         <div class="d-flex align-items-center gap-3 text-light">
-          <small>Hola, <strong>{{ user?.usuario?.username || 'Usuario' }}</strong></small>
+          <small>Hola, <strong>{{ user?.username || 'Usuario' }}</strong></small>
           <button @click="logout" class="btn btn-danger btn-sm">
             Salir
           </button>
@@ -35,10 +35,10 @@ const { isAuthenticated, logout, user } = useAuth();
   </nav>
 
   <main class="container">
-      <RouterView />
+    <RouterView />
   </main>
 </template>
 
 <style scoped>
-    /* */
+/* */
 </style>

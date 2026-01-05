@@ -1,73 +1,99 @@
-import { ref, computed } from 'vue';
-import api from '@/api/axios'; 
-import { useRouter } from 'vue-router';
-import type { UserData } from '../types/AuthTypes';
+import { ref, computed } from 'vue'
+import api from '@/api/axios'
+import { useRouter } from 'vue-router'
+import type { UserData } from '../types/AuthTypes'
 
-// Estado Global (Singleton)
-const user = ref<UserData | null>(null);
-const isAuthenticated = computed(() => !!user.value);
-const loading = ref(false);
+// --- ESTADO GLOBAL (Singleton) ---
+const user = ref<UserData | null>(null)
+
+const storedUser = localStorage.getItem('user')
+if (storedUser) {
+  try {
+    user.value = JSON.parse(storedUser)
+  } catch (e) {
+    localStorage.removeItem('user')
+  }
+}
+
+const isAuthenticated = computed(() => !!user.value)
+const loading = ref(false)
 
 export function useAuth() {
-    const router = useRouter();
+  const router = useRouter()
 
-    // 1. Verificar Auth
-    const checkAuth = async () => {
-        if (user.value) return true;
+  const setUser = (userData: UserData) => {
+    user.value = userData
+    localStorage.setItem('user', JSON.stringify(userData))
+  }
 
-        loading.value = true;
-        try {
-            const response = await api.get('/auth/me');
-            
-            if (response.data.success) {
-                user.value = response.data.data;
-                return true;
-            }
-            return false;
-        } catch (e) {
-            user.value = null;
-            return false;
-        } finally {
-            loading.value = false;
+  const checkAuth = async () => {
+    if (user.value) return true
+
+    loading.value = true
+    try {
+      const response = await api.get('/auth/me')
+
+      if (response.data.success && response.data.data) {
+        const { usuario, modulo } = response.data.data
+
+        const userData: UserData = {
+          ...usuario,
+          modulo: modulo,
         }
-    };
 
-    // 2. Iniciar Sesión
-    const login = () => {
-        const callbackUrl = encodeURIComponent(import.meta.env.VITE_API_URL + '/auth/callback');
-        window.location.href = `https://modulo-seguridad.sistemanh.shop/login?redirect_url=${callbackUrl}`;
-    };
+        setUser(userData)
+        return true
+      }
+      return false
+    } catch (e) {
+      logoutLocal()
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
 
-    // 3. Cerrar Sesión
-    const logout = async () => {
-        try {
-            await api.post('/auth/logout');
-        } catch (e) {
-            console.error('Error al cerrar sesión local', e);
-        } finally {
-            user.value = null;
-            window.location.href = 'https://modulo-seguridad.sistemanh.shop/logout';
-        }
-    };
+  /**
+   * Limpia el estado local sin hacer peticiones al servidor
+   */
+  const logoutLocal = () => {
+    user.value = null
+    localStorage.removeItem('user')
+  }
 
-    // 4. Verificar Permisos
-    const can = (permissionName: string) => {
-        const funciones = user.value?.modulo?.funciones;
-        
-        if (!funciones || !Array.isArray(funciones)) return false;
-        
-        return funciones.some((f) => 
-            f.nombre.toLowerCase().includes(permissionName.toLowerCase())
-        );
-    };
+  /**
+   * Cierra sesión: limpia la cookie en el backend y redirige al login
+   */
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout')
+    } catch (e) {
+      console.error('Error al cerrar sesión', e)
+    } finally {
+      logoutLocal()
+      router.push('/login')
+    }
+  }
 
-    return {
-        user,
-        isAuthenticated,
-        loading,
-        checkAuth,
-        login,
-        logout,
-        can
-    };
+  /**
+   * Verifica si el usuario tiene un permiso específico
+   * @param permissionName Nombre del permiso a verificar
+   */
+  const can = (permissionName: string) => {
+    const funciones = user.value?.modulo?.funciones
+
+    if (!funciones || !Array.isArray(funciones)) return false
+
+    return funciones.some((f) => f.nombre.toLowerCase().includes(permissionName.toLowerCase()))
+  }
+
+  return {
+    user,
+    isAuthenticated,
+    loading,
+    checkAuth,
+    setUser,
+    logout,
+    can,
+  }
 }

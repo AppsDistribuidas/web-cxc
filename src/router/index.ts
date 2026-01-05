@@ -5,6 +5,7 @@ import HomeView from '../views/HomeView.vue'
 import CuentasBancariasView from '../views/CuentasBancariasView.vue'
 import CuentasFormView from '../views/CuentasFormView.vue'
 import CuentasEditarView from '../views/CuentasEditarView.vue'
+import LoginView from '../views/LoginView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -14,6 +15,14 @@ const router = createRouter({
       name: 'home',
       component: HomeView,
       meta: { requiresAuth: true },
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: LoginView,
+      meta: {
+        requiresAuth: false,
+      },
     },
     {
       path: '/cuentas',
@@ -38,13 +47,22 @@ const router = createRouter({
 
 // --- GUARDIA DE NAVEGACIÓN GLOBAL ---
 router.beforeEach(async (to, from, next) => {
-  const { checkAuth, isAuthenticated, login } = useAuth()
+  const { checkAuth, isAuthenticated } = useAuth()
 
-  await checkAuth()
+  // Si la ruta requiere autenticación
+  if (to.meta.requiresAuth) {
+    await checkAuth()
 
-  if (to.meta.requiresAuth && !isAuthenticated.value) {
-    login()
-    return false
+    if (!isAuthenticated.value) {
+      next({ name: 'login' })
+      return
+    }
+  }
+
+  // Si el usuario está autenticado e intenta ir a login, redirigir al home
+  if (to.name === 'login' && isAuthenticated.value) {
+    next({ name: 'home' })
+    return
   }
 
   next()

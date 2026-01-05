@@ -12,7 +12,7 @@ const { user } = useAuth();
       
       <div class="card-body">
         <h2 class="card-title">
-            ¡Bienvenido, <span class="text-primary">{{ user?.usuario?.username || 'Usuario' }}</span>!
+            ¡Bienvenido, <span class="text-primary">{{ user?.username || 'Usuario' }}</span>!
         </h2>
         <p class="text-muted">Has iniciado sesión correctamente en el Sistema CXC.</p>
         
