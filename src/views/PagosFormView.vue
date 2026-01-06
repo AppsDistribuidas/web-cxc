@@ -24,32 +24,39 @@ const loading = ref(false);
 const saving = ref(false);
 const error = ref<string | null>(null);
 
-// Detalle temporal para agregar a la lista
 const nuevoDetalle = ref<DetallePago>({
     numero_factura: '',
     monto_pagar: 0
 });
 
-// Cargar datos iniciales
 onMounted(async () => {
     loading.value = true;
     try {
-        // Cargar Cuentas Bancarias
         const respCuentas = await api.get('/v1/cuentas-bancarias');
-        cuentas.value = respCuentas.data.data.filter((c: Cuenta) => c.estado); // Solo activas
+        cuentas.value = respCuentas.data.data.filter((c: Cuenta) => c.estado);
 
-        // Si es edición, cargar el pago
         if (isEditing.value) {
             const respPago = await api.get(`/v1/pagos/${route.params.numero_pago}`);
             const data = respPago.data.data;
+
+            // Bloqueo si ya está impreso
+            if (data.fecha_impresion) {
+                alert("Este pago ya fue procesado y no se puede editar.");
+                router.push('/pagos');
+                return;
+            }
             
-            // Mapear datos al formulario
+            
+            let fechaLimpia = data.fecha;
+            if (fechaLimpia) {
+                fechaLimpia = fechaLimpia.split('T')[0].split(' ')[0];
+            }
+
             form.value = {
                 cedula_cliente: data.cedula_cliente,
                 codigo_cuenta: data.codigo_cuenta,
                 descripcion: data.descripcion,
-                fecha: data.fecha,
-                // Transformar detalles para edición (monto_pagado -> monto_pagar)
+                fecha: fechaLimpia, // Asignamos la fecha limpia
                 detalles: data.detalles.map((d: any) => ({
                     numero_factura: d.numero_factura,
                     monto_pagar: Number(d.monto_pagado)
@@ -64,14 +71,12 @@ onMounted(async () => {
     }
 });
 
-// Métodos del Detalle
 const agregarDetalle = () => {
     if (!nuevoDetalle.value.numero_factura || nuevoDetalle.value.monto_pagar <= 0) {
         alert("Ingrese un número de factura y un monto válido.");
         return;
     }
 
-    // Verificar duplicados
     const existe = form.value.detalles.some(d => d.numero_factura === nuevoDetalle.value.numero_factura);
     if (existe) {
         alert("Esta factura ya está agregada en la lista.");
@@ -79,8 +84,6 @@ const agregarDetalle = () => {
     }
 
     form.value.detalles.push({ ...nuevoDetalle.value });
-    
-    // Resetear inputs de detalle
     nuevoDetalle.value = { numero_factura: '', monto_pagar: 0 };
 };
 
@@ -88,12 +91,10 @@ const eliminarDetalle = (index: number) => {
     form.value.detalles.splice(index, 1);
 };
 
-// Computed: Total
 const totalPago = computed(() => {
     return form.value.detalles.reduce((acc, item) => acc + item.monto_pagar, 0);
 });
 
-// Guardar
 const guardar = async () => {
     if (form.value.detalles.length === 0) {
         alert("Debe agregar al menos un detalle de pago.");
@@ -116,7 +117,7 @@ const guardar = async () => {
         if (e.response?.status === 422) {
             error.value = JSON.stringify(e.response.data.errors);
         } else if(e.response?.status === 404) {
-             error.value = e.response.data.message; // Probablemente cliente no existe
+             error.value = e.response.data.message;
         } else {
             error.value = e.response?.data?.message || "Error al guardar el pago.";
         }
@@ -155,7 +156,6 @@ const guardar = async () => {
                                         required
                                         maxlength="13"
                                     >
-                                    <div class="form-text text-muted">Se validará al guardar.</div>
                                 </div>
 
                                 <div class="col-md-4">
@@ -188,35 +188,19 @@ const guardar = async () => {
 
                             <div class="mb-3">
                                 <h5 class="text-secondary mb-3">Detalle de Facturas a Pagar</h5>
-                                
                                 <div class="card bg-light border-0 mb-3">
                                     <div class="card-body p-3">
                                         <div class="row g-2 align-items-end">
                                             <div class="col-md-5">
                                                 <label class="small text-muted fw-bold">No. Factura</label>
-                                                <input 
-                                                    v-model="nuevoDetalle.numero_factura"
-                                                    type="text" 
-                                                    class="form-control form-control-sm" 
-                                                    placeholder="Ej: 001-001-123456789"
-                                                    @keyup.enter="agregarDetalle"
-                                                >
+                                                <input v-model="nuevoDetalle.numero_factura" type="text" class="form-control form-control-sm" placeholder="Ej: 001-001-123456789" @keyup.enter="agregarDetalle">
                                             </div>
                                             <div class="col-md-4">
                                                 <label class="small text-muted fw-bold">Monto a Pagar ($)</label>
-                                                <input 
-                                                    v-model.number="nuevoDetalle.monto_pagar"
-                                                    type="number" 
-                                                    step="0.01" 
-                                                    min="0.00" 
-                                                    class="form-control form-control-sm"
-                                                    @keyup.enter="agregarDetalle"
-                                                >
+                                                <input v-model.number="nuevoDetalle.monto_pagar" type="number" step="0.01" min="0.00" class="form-control form-control-sm" @keyup.enter="agregarDetalle">
                                             </div>
                                             <div class="col-md-3 d-grid">
-                                                <button type="button" @click="agregarDetalle" class="btn btn-secondary btn-sm">
-                                                    <i class="bi bi-plus-lg"></i> Agregar
-                                                </button>
+                                                <button type="button" @click="agregarDetalle" class="btn btn-secondary btn-sm"><i class="bi bi-plus-lg"></i> Agregar</button>
                                             </div>
                                         </div>
                                     </div>
@@ -234,19 +218,13 @@ const guardar = async () => {
                                         <tbody>
                                             <tr v-for="(item, index) in form.detalles" :key="index">
                                                 <td class="ps-3 align-middle">{{ item.numero_factura }}</td>
-                                                <td class="text-end align-middle fw-bold">
-                                                    $ {{ item.monto_pagar.toFixed(2) }}
-                                                </td>
+                                                <td class="text-end align-middle fw-bold">$ {{ item.monto_pagar.toFixed(2) }}</td>
                                                 <td class="text-center">
-                                                    <button type="button" @click="eliminarDetalle(index)" class="btn btn-link text-danger p-0">
-                                                        <i class="bi bi-trash"></i>
-                                                    </button>
+                                                    <button type="button" @click="eliminarDetalle(index)" class="btn btn-link text-danger p-0"><i class="bi bi-trash"></i></button>
                                                 </td>
                                             </tr>
                                             <tr v-if="form.detalles.length === 0">
-                                                <td colspan="3" class="text-center text-muted py-3">
-                                                    Agregue las facturas que cancela el cliente.
-                                                </td>
+                                                <td colspan="3" class="text-center text-muted py-3">Agregue las facturas que cancela el cliente.</td>
                                             </tr>
                                         </tbody>
                                         <tfoot v-if="form.detalles.length > 0">
@@ -260,14 +238,10 @@ const guardar = async () => {
                                 </div>
                             </div>
 
-                            <div v-if="error" class="alert alert-danger mt-3">
-                                <i class="bi bi-exclamation-circle me-1"></i> {{ error }}
-                            </div>
+                            <div v-if="error" class="alert alert-danger mt-3"><i class="bi bi-exclamation-circle me-1"></i> {{ error }}</div>
 
                             <div class="d-flex justify-content-end gap-2 mt-4">
-                                <button type="button" @click="router.push('/pagos')" class="btn btn-outline-secondary">
-                                    Cancelar
-                                </button>
+                                <button type="button" @click="router.push('/pagos')" class="btn btn-outline-secondary">Cancelar</button>
                                 <button type="submit" class="btn btn-success px-4" :disabled="saving || form.detalles.length === 0">
                                     <span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>
                                     {{ isEditing ? 'Actualizar Pago' : 'Finalizar Pago' }}

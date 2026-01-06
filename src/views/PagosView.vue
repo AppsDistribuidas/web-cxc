@@ -13,7 +13,17 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 const filtroCedula = ref('');
 
-// Función para obtener pagos con filtros
+const formatearFecha = (fechaString: string) => {
+    if (!fechaString) return 'N/A';
+    // Crea una fecha ajustando la zona horaria para evitar que se reste un día
+    const fecha = new Date(fechaString + 'T00:00:00'); 
+    return new Intl.DateTimeFormat('es-EC', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    }).format(fecha);
+};
+
 const obtenerPagos = async () => {
     loading.value = true;
     error.value = null;
@@ -31,7 +41,6 @@ const obtenerPagos = async () => {
     }
 };
 
-// Descargar PDF Individual
 const imprimirComprobante = async (numeroPago: string) => {
     try {
         const response = await api.get(`/v1/pagos/${numeroPago}/pdf`, { responseType: 'blob' });
@@ -41,15 +50,12 @@ const imprimirComprobante = async (numeroPago: string) => {
         link.setAttribute('download', `Comprobante-${numeroPago}.pdf`);
         document.body.appendChild(link);
         link.click();
-        
-        // Recargar para actualizar estado "Impreso"
         obtenerPagos();
     } catch (e) {
         alert("Error al descargar el comprobante.");
     }
 };
 
-// Debounce simple para el buscador
 let timeout: number;
 watch(filtroCedula, () => {
     clearTimeout(timeout);
@@ -71,10 +77,10 @@ onMounted(() => {
                 <p class="text-muted small mb-0">Registro y control de recaudación de clientes</p>
             </div>
 
-            <button v-if="can('Pago de Clientes')" 
+            <button v-if="can('Gestión de Pagos')" 
                     @click="router.push('/pagos/crear')" 
                     class="btn btn-primary shadow-sm">
-                <i class="bi bi-plus-circle me-2"></i>Registrar Nuevo Pago
+                <i class="bi"></i>Nuevo Pago
             </button>
         </div>
 
@@ -132,14 +138,16 @@ onMounted(() => {
                             <td>
                                 <div class="d-flex flex-column">
                                     <span class="fw-medium">{{ pago.cedula_cliente }}</span>
-                                    </div>
+                                </div>
                             </td>
                             <td>
                                 <span class="badge bg-light text-dark border">
                                     {{ pago.cuenta_bancaria?.nombre_cuenta || pago.codigo_cuenta }}
                                 </span>
                             </td>
-                            <td>{{ pago.fecha }}</td>
+                            
+                            <td>{{ formatearFecha(pago.fecha) }}</td>
+
                             <td class="text-end fw-bold">
                                 ${{ Number(pago.detalles_sum_monto_pagado || 0).toFixed(2) }}
                             </td>
@@ -151,7 +159,7 @@ onMounted(() => {
                             <td class="text-end pe-4">
                                 <div class="btn-group">
                                     <button 
-                                        v-if="!pago.fecha_impresion && can('Pago de Clientes')"
+                                        v-if="!pago.fecha_impresion && can('Gestión de Pagos')"
                                         @click="router.push(`/pagos/${pago.numero_pago}/editar`)"
                                         class="btn btn-sm btn-outline-primary"
                                         title="Editar">

@@ -46,13 +46,21 @@ const router = createRouter({
     },
     {
       path: '/pagos',
-      name: 'pagos',
-      component: PagosView
+      name: 'pagos-lista',
+      component: PagosView,
+      meta: { requiresAuth: true } 
     },
     {
-      path: '/pagos/nuevo',
-      name: 'crear-pago',
-      component: PagosFormView
+      path: '/pagos/crear',
+      name: 'pagos-crear',
+      component: PagosFormView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/pagos/:numero_pago/editar',
+      name: 'pagos-editar',
+      component: PagosFormView,
+      meta: { requiresAuth: true }
     }
   ],
 })
