@@ -22,6 +22,9 @@ const { isAuthenticated, logout, user } = useAuth();
           <li class="nav-item">
             <RouterLink to="/cuentas" class="nav-link" active-class="active">Cuentas Bancarias</RouterLink>
           </li>
+          <li class="nav-item">
+            <RouterLink to="/pagos" class="nav-link" active-class="active">Pagos</RouterLink>
+          </li>
         </ul>
 
         <div class="d-flex align-items-center gap-3 text-light">
