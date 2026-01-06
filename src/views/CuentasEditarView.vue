@@ -76,46 +76,66 @@ const actualizar = async () => {
 </script>
 
 <template>
-    <div class="container mt-4">
+    <div class="container mt-4 mb-5">
         <div class="row justify-content-center">
-            <div class="col-md-8 col-lg-6">
-                
-                <div class="d-flex align-items-center mb-3">
-                    <button @click="router.push('/cuentas')" class="btn btn-outline-secondary me-3 rounded-circle">
-                        <i class="bi bi-arrow-left"></i>
-                    </button>
-                    <h2 class="mb-0">Editar Cuenta</h2>
-                </div>
-
-                <div v-if="loading" class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Cargando...</span>
+            <div class="col-lg-8">
+                <div class="card shadow border-0">
+                    <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <button @click="router.push('/cuentas')" 
+                                    class="btn btn-light btn-sm me-3 rounded-circle d-flex align-items-center justify-content-center"
+                                    style="width: 32px; height: 32px;">
+                                <i class="bi bi-arrow-left"></i>
+                            </button>
+                            <h4 class="mb-0 fw-normal">
+                                <i class="bi bi-pencil-square me-2"></i>Editar Cuenta Bancaria
+                            </h4>
+                        </div>
+                        <span class="badge bg-white text-primary">{{ idCuenta }}</span>
                     </div>
-                </div>
-                
-                <div v-else class="card shadow-sm border-0">
+
                     <div class="card-body p-4">
-                        
-                        <div v-if="error" class="alert alert-danger d-flex align-items-center" role="alert">
-                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                            <div style="white-space: pre-line;">{{ error }}</div>
+                        <div v-if="loading" class="text-center py-4">
+                            <span class="spinner-border text-primary"></span>
+                            <p class="mt-2 text-muted">Cargando datos...</p>
                         </div>
 
-                        <form @submit.prevent="actualizar">
-                            
-                            <div class="mb-3">
-                                <label for="codigo" class="form-label fw-bold">Código</label>
-                                <input 
-                                    id="codigo"
-                                    v-model="form.codigo" 
-                                    type="text" 
-                                    class="form-control" 
-                                    required
-                                    readonly 
-                                    disabled
-                                    title="El código no se debe modificar"
-                                />
-                                <div class="form-text">El código identificador no se puede cambiar.</div>
+                        <form v-else @submit.prevent="actualizar">
+                            <div v-if="error" class="alert alert-danger d-flex align-items-center" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                <div style="white-space: pre-line;">{{ error }}</div>
+                            </div>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label for="codigo" class="form-label fw-bold">Código</label>
+                                    <input 
+                                        id="codigo"
+                                        v-model="form.codigo" 
+                                        type="text" 
+                                        class="form-control" 
+                                        required
+                                        readonly 
+                                        disabled
+                                        title="El código no se debe modificar"
+                                    />
+                                    <div class="form-text">El código identificador no se puede cambiar.</div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="banco" class="form-label fw-bold">Entidad Bancaria</label>
+                                    <select 
+                                        id="banco"
+                                        v-model="form.id_entidad_bancaria" 
+                                        class="form-select"
+                                        required
+                                    >
+                                        <option value="" disabled>Seleccione un banco...</option>
+                                        <option v-for="banco in bancos" :key="banco.id" :value="banco.id">
+                                            {{ banco.nombre }}
+                                        </option>
+                                    </select>
+                                </div>
                             </div>
 
                             <div class="mb-3">
@@ -128,21 +148,6 @@ const actualizar = async () => {
                                     placeholder="Ej: Cuenta Corriente Bco Pichincha"
                                     required 
                                 />
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="banco" class="form-label fw-bold">Entidad Bancaria</label>
-                                <select 
-                                    id="banco"
-                                    v-model="form.id_entidad_bancaria" 
-                                    class="form-select"
-                                    required
-                                >
-                                    <option value="" disabled>Seleccione un banco...</option>
-                                    <option v-for="banco in bancos" :key="banco.id" :value="banco.id">
-                                        {{ banco.nombre }}
-                                    </option>
-                                </select>
                             </div>
 
                             <div class="mb-3">
@@ -164,19 +169,22 @@ const actualizar = async () => {
                                         id="estadoSwitch"
                                         v-model="form.estado"
                                     >
-                                    <label class="form-check-label" for="estadoSwitch">
-                                        {{ form.estado ? 'Cuenta Activa' : 'Cuenta Inactiva' }}
+                                    <label class="form-check-label fw-bold" for="estadoSwitch">
+                                        <span :class="form.estado ? 'text-success' : 'text-danger'">
+                                            {{ form.estado ? '✓ Cuenta Activa' : '✗ Cuenta Inactiva' }}
+                                        </span>
                                     </label>
                                 </div>
+                                <div class="form-text">Las cuentas inactivas no estarán disponibles para nuevos pagos.</div>
                             </div>
 
-                            <hr>
+                            <hr class="my-4 text-muted">
 
                             <div class="d-flex justify-content-end gap-2">
                                 <button 
                                     type="button" 
                                     @click="router.push('/cuentas')" 
-                                    class="btn btn-secondary"
+                                    class="btn btn-outline-secondary"
                                     :disabled="submitting"
                                 >
                                     Cancelar
@@ -184,7 +192,7 @@ const actualizar = async () => {
                                 
                                 <button 
                                     type="submit" 
-                                    class="btn btn-primary d-flex align-items-center"
+                                    class="btn btn-primary px-4"
                                     :disabled="submitting"
                                 >
                                     <span v-if="submitting" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
