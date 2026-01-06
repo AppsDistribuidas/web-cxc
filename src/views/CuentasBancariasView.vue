@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import api from '@/api/axios';
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuth } from '@/composables/useAuth';
 
@@ -10,10 +10,8 @@ const router = useRouter();
 const { can } = useAuth();
 
 const cuentas = ref<Cuenta[]>([]);
-const cuentasFiltradas = ref<Cuenta[]>([]);
 const error = ref<string | null>(null);
 const loading = ref(false);
-const filtroBusqueda = ref('');
 
 const obtenerCuentas = async () => {
     loading.value = true;
@@ -21,7 +19,6 @@ const obtenerCuentas = async () => {
     try {
         const response = await api.get('/v1/cuentas-bancarias');
         cuentas.value = response.data.data;
-        cuentasFiltradas.value = response.data.data;
     } catch (e: any) {
         if (e.response && e.response.status === 403) {
             error.value = "No tienes permiso para ver las cuentas.";
@@ -60,24 +57,6 @@ const eliminarCuenta = async (cuenta: Cuenta) => {
     }
 };
 
-// Filtrado en tiempo real
-let timeout: number;
-watch(filtroBusqueda, () => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => {
-        const busqueda = filtroBusqueda.value.toLowerCase();
-        if (!busqueda) {
-            cuentasFiltradas.value = cuentas.value;
-        } else {
-            cuentasFiltradas.value = cuentas.value.filter(cuenta => 
-                cuenta.codigo.toLowerCase().includes(busqueda) ||
-                cuenta.nombre_cuenta.toLowerCase().includes(busqueda) ||
-                cuenta.entidad_bancaria?.nombre.toLowerCase().includes(busqueda)
-            );
-        }
-    }, 300);
-});
-
 onMounted(() => {
     obtenerCuentas();
 });
@@ -86,59 +65,33 @@ onMounted(() => {
 <template>
     <div class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h2 class="text-primary mb-1">Gestión de Cuentas Bancarias</h2>
-                <p class="text-muted small mb-0">Administración de cuentas para recepción de pagos</p>
-            </div>
+            <h2 class="text-primary mb-0">
+                Cuentas Bancarias
+            </h2>
 
             <button v-if="can('Crear Cuenta') || can('Administración Cuentas Bancarias')"
-                @click="router.push('/cuentas/crear')" class="btn btn-primary shadow-sm">
-                <i class="bi bi-plus-circle me-2"></i>Nueva Cuenta
+                @click="router.push('/cuentas/crear')" class="btn btn-success">
+                <i class="bi bi-plus-lg"></i> Nueva Cuenta
             </button>
         </div>
 
-        <div class="card shadow-sm border-0 mb-4 bg-light">
-            <div class="card-body py-3">
-                <div class="row g-3 align-items-center">
-                    <div class="col-md-4">
-                        <div class="input-group">
-                            <span class="input-group-text bg-white border-end-0">
-                                <i class="bi bi-search text-muted"></i>
-                            </span>
-                            <input 
-                                v-model="filtroBusqueda"
-                                type="text" 
-                                class="form-control border-start-0" 
-                                placeholder="Buscar por código, nombre o banco..."
-                            >
-                        </div>
-                    </div>
-                    <div class="col-md-8 text-end">
-                        <button @click="obtenerCuentas" class="btn btn-outline-secondary btn-sm" title="Actualizar">
-                            <i class="bi bi-arrow-clockwise"></i> Refrescar
-                        </button>
-                    </div>
-                </div>
-            </div>
+        <div v-if="loading" class="alert alert-info text-center">
+            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+            Cargando datos...
         </div>
 
-        <div v-if="loading" class="text-center py-5">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted">Cargando registros...</p>
+        <div v-if="error" class="alert alert-danger" role="alert">
+            {{ error }}
         </div>
 
-        <div v-else-if="error" class="alert alert-danger shadow-sm">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ error }}
-        </div>
-
-        <div v-else class="card shadow-sm border-0 overflow-hidden">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light text-secondary">
+        <div v-if="!loading && !error" class="card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="table-dark">
                         <tr>
-                            <th class="ps-4">Código</th>
-                            <th>Nombre de Cuenta</th>
-                            <th>Entidad Bancaria</th>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Banco</th>
                             <th class="text-center">Estado</th>
                             <th v-if="can('Editar Cuenta') || can('Eliminar Cuenta') || can('Administración Cuentas Bancarias')"
                                 class="text-end pe-4">
@@ -147,49 +100,37 @@ onMounted(() => {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="cuenta in cuentasFiltradas" :key="cuenta.codigo">
-                            <td class="ps-4 fw-bold text-primary">{{ cuenta.codigo }}</td>
-                            <td>
-                                <div class="d-flex flex-column">
-                                    <span class="fw-medium">{{ cuenta.nombre_cuenta }}</span>
-                                    <small v-if="cuenta.descripcion" class="text-muted">{{ cuenta.descripcion }}</small>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="badge bg-light text-dark border">
-                                    {{ cuenta.entidad_bancaria?.nombre || 'N/A' }}
-                                </span>
-                            </td>
-                            <td class="text-center">
-                                <span :class="`badge rounded-pill ${cuenta.estado ? 'bg-success' : 'bg-danger'}`">
-                                    {{ cuenta.estado ? 'Activa' : 'Inactiva' }}
+                        <tr v-for="cuenta in cuentas" :key="cuenta.codigo">
+                            <td class="align-middle">{{ cuenta.codigo }}</td>
+                            <td class="align-middle fw-bold">{{ cuenta.nombre_cuenta }}</td>
+                            <td class="align-middle">{{ cuenta.entidad_bancaria?.nombre || 'N/A' }}</td>
+                            <td class="align-middle text-center">
+                                <span :class="cuenta.estado ? 'badge bg-success' : 'badge bg-danger'">
+                                    {{ cuenta.estado ? 'Activo' : 'Inactivo' }}
                                 </span>
                             </td>
 
-                            <td class="text-end pe-4"
+                            <td class="align-middle text-end pe-3"
                                 v-if="can('Editar Cuenta') || can('Eliminar Cuenta') || can('Administración Cuentas Bancarias')">
-                                <div class="btn-group">
+                                <div class="btn-group" role="group">
                                     <button v-if="can('Editar Cuenta') || can('Administración Cuentas Bancarias')"
                                         @click="router.push(`/cuentas/${cuenta.codigo}/editar`)"
-                                        class="btn btn-sm btn-outline-primary"
-                                        title="Editar">
-                                        <i class="bi bi-pencil"></i>
+                                        class="btn btn-warning btn-sm text-white" title="Editar">
+                                        Editar
                                     </button>
 
-                                    <button v-if="(can('Eliminar Cuenta') || can('Administración Cuentas Bancarias')) && cuenta.estado"
-                                        @click="eliminarCuenta(cuenta)" 
-                                        class="btn btn-sm btn-outline-danger" 
-                                        title="Desactivar">
-                                        <i class="bi bi-x-circle"></i>
+                                    <button v-if="can('Eliminar Cuenta') || can('Administración Cuentas Bancarias')"
+                                        @click="eliminarCuenta(cuenta)" class="btn btn-danger btn-sm" title="Desactivar"
+                                        :disabled="!cuenta.estado">
+                                        Desactivar
                                     </button>
                                 </div>
                             </td>
                         </tr>
 
-                        <tr v-if="cuentasFiltradas.length === 0">
-                            <td colspan="5" class="text-center py-5 text-muted">
-                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                                {{ filtroBusqueda ? 'No se encontraron cuentas con ese criterio.' : 'No hay cuentas registradas en el sistema.' }}
+                        <tr v-if="cuentas.length === 0">
+                            <td colspan="5" class="text-center py-4 text-muted">
+                                No hay cuentas registradas en el sistema.
                             </td>
                         </tr>
                     </tbody>

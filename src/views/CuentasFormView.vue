@@ -48,50 +48,31 @@ const guardar = async () => {
 </script>
 
 <template>
-    <div class="container mt-4 mb-5">
+    <div class="container mt-4">
         <div class="row justify-content-center">
-            <div class="col-lg-8">
-                <div class="card shadow border-0">
-                    <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
-                        <h4 class="mb-0 fw-normal">
-                            <i class="bi bi-bank me-2"></i>Nueva Cuenta Bancaria
-                        </h4>
+            <div class="col-md-8 col-lg-6">
+                
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                        <h2 class="mb-0">Nueva Cuenta Bancaria</h2>
                     </div>
 
                     <div class="card-body p-4">
                         <div v-if="error" class="alert alert-danger" role="alert" style="white-space: pre-line;">
-                            <i class="bi bi-exclamation-circle me-1"></i> {{ error }}
+                            {{ error }}
                         </div>
 
                         <form @submit.prevent="guardar">
-                            <div class="row g-3 mb-4">
-                                <div class="col-md-6">
-                                    <label for="codigo" class="form-label fw-bold">Código (Único)</label>
-                                    <input 
-                                        id="codigo"
-                                        v-model="form.codigo" 
-                                        type="text" 
-                                        class="form-control" 
-                                        placeholder="Ej: CTA-BAN-001" 
-                                        required 
-                                    />
-                                    <div class="form-text text-muted">Identificador único de la cuenta</div>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label for="banco" class="form-label fw-bold">Entidad Bancaria</label>
-                                    <select 
-                                        id="banco"
-                                        v-model="form.id_entidad_bancaria" 
-                                        class="form-select" 
-                                        required
-                                    >
-                                        <option :value="undefined" disabled>Seleccione un banco...</option>
-                                        <option v-for="banco in bancos" :key="banco.id" :value="banco.id">
-                                            {{ banco.nombre }}
-                                        </option>
-                                    </select>
-                                </div>
+                            <div class="mb-3">
+                                <label for="codigo" class="form-label fw-bold">Código (Único)</label>
+                                <input 
+                                    id="codigo"
+                                    v-model="form.codigo" 
+                                    type="text" 
+                                    class="form-control" 
+                                    placeholder="Ej: CTA-BAN-001" 
+                                    required 
+                                />
                             </div>
 
                             <div class="mb-3">
@@ -101,9 +82,24 @@ const guardar = async () => {
                                     v-model="form.nombre_cuenta" 
                                     type="text" 
                                     class="form-control" 
-                                    placeholder="Ej: Cuenta Corriente Principal" 
+                                    placeholder="Ej: Cuenta de Ahorros" 
                                     required 
                                 />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="banco" class="form-label fw-bold">Banco</label>
+                                <select 
+                                    id="banco"
+                                    v-model="form.id_entidad_bancaria" 
+                                    class="form-select" 
+                                    required
+                                >
+                                    <option :value="undefined" disabled>Seleccione un banco...</option>
+                                    <option v-for="banco in bancos" :key="banco.id" :value="banco.id">
+                                        {{ banco.nombre }}
+                                    </option>
+                                </select>
                             </div>
 
                             <div class="mb-4">
@@ -113,28 +109,26 @@ const guardar = async () => {
                                     v-model="form.descripcion" 
                                     class="form-control" 
                                     rows="3" 
-                                    placeholder="Detalles adicionales sobre la cuenta (opcional)..."
+                                    placeholder="Detalles opcionales..."
                                 ></textarea>
                             </div>
-
-                            <hr class="my-4 text-muted">
 
                             <div class="d-flex justify-content-end gap-2">
                                 <button 
                                     type="button" 
                                     @click="router.push('/cuentas')" 
-                                    class="btn btn-outline-secondary"
+                                    class="btn btn-secondary"
                                     :disabled="loading"
                                 >
                                     Cancelar
                                 </button>
                                 <button 
                                     type="submit" 
-                                    class="btn btn-success px-4"
+                                    class="btn btn-success d-flex align-items-center"
                                     :disabled="loading"
                                 >
                                     <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
-                                    {{ loading ? 'Guardando...' : 'Crear Cuenta' }}
+                                    {{ loading ? 'Guardando...' : 'Guardar' }}
                                 </button>
                             </div>
                         </form>
