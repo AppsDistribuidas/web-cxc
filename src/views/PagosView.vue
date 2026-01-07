@@ -15,13 +15,28 @@ const filtroCedula = ref('');
 
 const formatearFecha = (fechaString: string) => {
     if (!fechaString) return 'N/A';
-    // Crea una fecha ajustando la zona horaria para evitar que se reste un día
-    const fecha = new Date(fechaString + 'T00:00:00'); 
-    return new Intl.DateTimeFormat('es-EC', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    }).format(fecha);
+    
+    try {
+        // 1. Limpiamos la fecha por si viene con hora o formato ISO
+        // Nos quedamos solo con la parte YYYY-MM-DD
+        const soloFecha = fechaString.split('T')[0].split(' ')[0];
+        
+        // 2. Creamos la fecha forzando la hora local para evitar desfases
+        const fecha = new Date(soloFecha + 'T00:00:00');
+        
+        // 3. Validamos que sea una fecha válida antes de formatear
+        if (isNaN(fecha.getTime())) {
+            return fechaString; // Si falla, devolvemos el original
+        }
+
+        return new Intl.DateTimeFormat('es-EC', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        }).format(fecha);
+    } catch (e) {
+        return fechaString; // Fallback de seguridad
+    }
 };
 
 const obtenerPagos = async () => {
