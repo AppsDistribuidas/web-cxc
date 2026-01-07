@@ -2,7 +2,7 @@
 import { RouterLink, RouterView } from 'vue-router'
 import { useAuth } from '@/composables/useAuth';
 
-const { isAuthenticated, logout, user } = useAuth();
+const { isAuthenticated, logout, user, can } = useAuth();
 </script>
 
 <template>
@@ -19,7 +19,7 @@ const { isAuthenticated, logout, user } = useAuth();
           <li class="nav-item">
             <RouterLink to="/" class="nav-link" active-class="active">Inicio</RouterLink>
           </li>
-          <li class="nav-item">
+          <li v-if="can('Administración cuentas bancarias')" class="nav-item">
             <RouterLink to="/cuentas" class="nav-link" active-class="active">Cuentas Bancarias</RouterLink>
           </li>
           <li class="nav-item">
