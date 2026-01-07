@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import axios from 'axios';
 import { useAuth } from '@/composables/useAuth';
 import api from '@/api/axios';
+import { Modulo } from '@/types/Modulos';
 
 const router = useRouter();
 const { setUser } = useAuth();
@@ -11,7 +12,7 @@ const { setUser } = useAuth();
 const form = ref({
     email_username: '',
     password: '',
-    modulo_id: 4
+    modulo_id: Modulo.CUENTAS_POR_COBRAR
 });
 
 const loading = ref(false);
@@ -97,10 +98,6 @@ const handleLogin = async () => {
                         {{ loading ? 'Validando...' : 'Iniciar Sesión' }}
                     </button>
                 </form>
-
-                <div class="mt-4 text-center">
-                    <small class="text-muted">Módulo ID: {{ form.modulo_id }}</small>
-                </div>
             </div>
         </div>
     </div>
