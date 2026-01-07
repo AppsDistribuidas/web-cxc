@@ -84,7 +84,8 @@ export function useAuth() {
 
     if (!funciones || !Array.isArray(funciones)) return false
 
-    return funciones.some((f) => f.nombre.toLowerCase().includes(permissionName.toLowerCase()))
+    // Comparación exacta (insensible a mayúsculas) para evitar permisos ambiguos
+    return funciones.some((f) => f.nombre.toLowerCase() === permissionName.toLowerCase())
   }
 
   return {

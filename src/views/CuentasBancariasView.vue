@@ -31,7 +31,7 @@ const obtenerCuentas = async () => {
 };
 
 const eliminarCuenta = async (cuenta: Cuenta) => {
-    if (!can('Eliminar Cuenta') && !can('Administración Cuentas Bancarias')) {
+    if (!can('Administración cuentas bancarias')) {
         alert("No tienes permiso para eliminar.");
         return;
     }
@@ -42,8 +42,8 @@ const eliminarCuenta = async (cuenta: Cuenta) => {
         const payload = {
             codigo: cuenta.codigo,
             nombre_cuenta: cuenta.nombre_cuenta,
-            id_entidad_bancaria: (cuenta as any).id_entidad_bancaria,
-            descripcion: (cuenta as any).descripcion,
+            id_entidad_bancaria: cuenta.id_entidad_bancaria,
+            descripcion: cuenta.descripcion,
             estado: false
         };
 
@@ -69,7 +69,7 @@ onMounted(() => {
                 Cuentas Bancarias
             </h2>
 
-            <button v-if="can('Crear Cuenta') || can('Administración Cuentas Bancarias')"
+            <button v-if="can('Administración cuentas bancarias')"
                 @click="router.push('/cuentas/crear')" class="btn btn-success">
                 <i class="bi bi-plus-lg"></i> Nueva Cuenta
             </button>
@@ -93,7 +93,7 @@ onMounted(() => {
                             <th>Nombre</th>
                             <th>Banco</th>
                             <th class="text-center">Estado</th>
-                            <th v-if="can('Editar Cuenta') || can('Eliminar Cuenta') || can('Administración Cuentas Bancarias')"
+                            <th v-if="can('Administración cuentas bancarias')"
                                 class="text-end pe-4">
                                 Acciones
                             </th>
@@ -111,15 +111,15 @@ onMounted(() => {
                             </td>
 
                             <td class="align-middle text-end pe-3"
-                                v-if="can('Editar Cuenta') || can('Eliminar Cuenta') || can('Administración Cuentas Bancarias')">
+                                v-if="can('Administración cuentas bancarias')">
                                 <div class="btn-group" role="group">
-                                    <button v-if="can('Editar Cuenta') || can('Administración Cuentas Bancarias')"
+                                    <button v-if="can('Administración cuentas bancarias')"
                                         @click="router.push(`/cuentas/${cuenta.codigo}/editar`)"
                                         class="btn btn-warning btn-sm text-white" title="Editar">
                                         Editar
                                     </button>
 
-                                    <button v-if="can('Eliminar Cuenta') || can('Administración Cuentas Bancarias')"
+                                    <button v-if="can('Administración cuentas bancarias')"
                                         @click="eliminarCuenta(cuenta)" class="btn btn-danger btn-sm" title="Desactivar"
                                         :disabled="!cuenta.estado">
                                         Desactivar
