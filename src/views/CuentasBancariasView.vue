@@ -113,13 +113,13 @@ onMounted(() => {
                             <td class="align-middle text-end pe-3"
                                 v-if="can('Administración cuentas bancarias')">
                                 <div class="btn-group" role="group">
-                                    <button v-if="can('Administración cuentas bancarias')"
+                                    <button
                                         @click="router.push(`/cuentas/${cuenta.codigo}/editar`)"
                                         class="btn btn-warning btn-sm text-white" title="Editar">
                                         Editar
                                     </button>
 
-                                    <button v-if="can('Administración cuentas bancarias')"
+                                    <button
                                         @click="eliminarCuenta(cuenta)" class="btn btn-danger btn-sm" title="Desactivar"
                                         :disabled="!cuenta.estado">
                                         Desactivar
