@@ -15,10 +15,12 @@ export interface Pago {
     cuenta_bancaria?: Cuenta;
     descripcion: string;
     fecha: string;
+    monto_total: number;
+    username: string;
+    estado: string;
     procesado: boolean;
     fecha_impresion?: string | null;
     detalles: DetallePago[];
-    detalles_sum_monto_pagado?: number;
 }
 
 export interface PagoPayload {
