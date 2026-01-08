@@ -8,6 +8,7 @@ import type { Pago } from '@/types/PaymentTypes';
 const router = useRouter();
 
 const pagos = ref<Pago[]>([]);
+const allPagos = ref<Pago[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const filtroCedula = ref('');
@@ -42,17 +43,27 @@ const obtenerPagos = async () => {
     loading.value = true;
     error.value = null;
     try {
-        const params: any = {};
-        if (filtroCedula.value) params.cedula_cliente = filtroCedula.value;
-
-        const response = await api.get('/v1/pagos', { params });
-        pagos.value = response.data.data;
+        // Traemos todos los pagos y almacenamos en allPagos para permitir filtrado local por subcadenas
+        const response = await api.get('/v1/pagos');
+        allPagos.value = response.data.data || [];
+        aplicarFiltro();
     } catch (e: any) {
         error.value = "Error al cargar los pagos. Intente nuevamente.";
         console.error(e);
     } finally {
         loading.value = false;
     }
+};
+
+const aplicarFiltro = () => {
+    const q = filtroCedula.value.trim().toLowerCase();
+    if (!q) {
+        pagos.value = allPagos.value;
+        return;
+    }
+
+    // Filtrado por cédula (coincidencia parcial); se puede extender a otros campos si se desea
+    pagos.value = allPagos.value.filter(p => (p.cedula_cliente ?? '').toLowerCase().includes(q));
 };
 
 const anularPago = async (pago: any) => {
@@ -71,6 +82,9 @@ const anularPago = async (pago: any) => {
 };
 
 const imprimirComprobante = async (numeroPago: string) => {
+    // Pedimos confirmación al usuario antes de descargar/imprimir
+    if (!confirm(`¿Esta seguro de imprimir el pago? Esta acción no se puede deshacer.`)) return;
+
     try {
         const response = await api.get(`/v1/pagos/${numeroPago}/pdf`, { responseType: 'blob' });
         const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -89,7 +103,7 @@ let timeout: number;
 watch(filtroCedula, () => {
     clearTimeout(timeout);
     timeout = setTimeout(() => {
-        obtenerPagos();
+        aplicarFiltro();
     }, 500);
 });
 
@@ -154,11 +168,11 @@ onMounted(() => {
                         <tr>
                             <th class="ps-4">No. Pago</th>
                             <th>Cliente</th>
-                            <th>Cuenta Destino</th>
+                            <th class="text-center">Cuenta Destino</th>
                             <th>Fecha</th>
                             <th class="text-end">Monto Total</th>
                             <th class="text-center">Estado</th>
-                            <th class="text-end pe-4">Acciones</th>
+                            <th class="text-center">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -169,23 +183,23 @@ onMounted(() => {
                                     <span class="fw-medium">{{ pago.cedula_cliente }}</span>
                                 </div>
                             </td>
-                            <td>
+                            <td class="text-center">
                                 <span class="badge bg-light text-dark border">
-                                    {{ pago.cuenta_bancaria?.nombre_cuenta || pago.codigo_cuenta }}
+                                    {{ pago.codigo_cuenta }}
                                 </span>
                             </td>
                             
                             <td>{{ formatearFecha(pago.fecha) }}</td>
 
                             <td class="text-end fw-bold">
-                                ${{ Number(pago.detalles_sum_monto_pagado || 0).toFixed(2) }}
+                                ${{ Number(pago.monto_total || 0).toFixed(2) }}
                             </td>
                             <td class="text-center">
                                 <span :class="`badge rounded-pill ${pago.fecha_impresion ? 'bg-success' : 'bg-warning text-dark'}`">
-                                    {{ pago.fecha_impresion ? 'Procesado' : 'Borrador' }}
+                                    {{ pago.estado }}
                                 </span>
                             </td>
-                            <td class="text-end pe-4">
+                            <td class="text-center">
                                 <div class="btn-group">
                                     <button 
                                         v-if="!pago.fecha_impresion"
@@ -203,10 +217,10 @@ onMounted(() => {
                                     </button>
 
                                     <button 
-                                        v-if="!pago.procesado" 
+                                        v-if="pago.estado !== 'PROCESADO'" 
                                         @click="anularPago(pago)" 
-                                        class="btn btn-outline-danger" 
-                                        title="Anular/Eliminar"
+                                        class="btn btn-sm btn-outline-danger" 
+                                        title="Anular"
                                     >
                                         <i class="bi bi-trash"></i>
                                     </button>

@@ -7,6 +7,8 @@ export interface DetallePago {
     monto_pagado?: number; // El backend devuelve 'monto_pagado' en el response
 }
 
+export type EstadoPago = 'BORRADOR' | 'PROCESADO' | 'INACTIVO';
+
 export interface Pago {
     numero_pago: string;
     cedula_cliente: string;
@@ -17,8 +19,7 @@ export interface Pago {
     fecha: string;
     monto_total: number;
     username: string;
-    estado: string;
-    procesado: boolean;
+    estado: EstadoPago;
     fecha_impresion?: string | null;
     detalles: DetallePago[];
 }

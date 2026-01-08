@@ -24,6 +24,9 @@ const loading = ref(false);
 const saving = ref(false);
 const error = ref<string | null>(null);
 
+// Variable para mostrar el estado actual al editar
+const estadoPago = ref<string>('');
+
 // BANDERA PARA CONTROLAR LA EDICIÓN
 const cargandoDatos = ref(false); 
 
@@ -87,8 +90,6 @@ const alSeleccionarFactura = () => {
 
 const getFacturaInfo = (numeroFactura: string) => {
     // Busca en las facturas disponibles (Mock)
-    // NOTA: Si al editar la factura ya está pagada y no sale en "pendientes", 
-    // podrías necesitar lógica extra en el backend para traer también las facturas de este pago específico.
     return facturasDisponibles.value.find(f => f.numero_factura === numeroFactura);
 };
 
@@ -106,9 +107,12 @@ onMounted(async () => {
 
             const respPago = await api.get(`/v1/pagos/${route.params.numero_pago}`);
             const data = respPago.data.data;
+            
+            estadoPago.value = data.estado; // Guardamos estado para mostrar badge
 
-            if (data.fecha_impresion) {
-                alert("Este pago ya fue procesado y no se puede editar.");
+            // VALIDACIÓN CRÍTICA: Solo permitir editar si está en BORRADOR
+            if (data.estado !== 'BORRADOR') {
+                alert(`El pago está en estado ${data.estado} y no se puede editar.`);
                 router.push('/pagos');
                 return;
             }
@@ -126,7 +130,8 @@ onMounted(async () => {
                 fecha: fechaLimpia,
                 detalles: data.detalles.map((d: any) => ({
                     numero_factura: d.numero_factura,
-                    monto_pagar: Number(d.monto_pagado)
+                    // Nota: Backend devuelve 'monto_pagado' en GET, pero el form usa 'monto_pagar'
+                    monto_pagar: Number(d.monto_pagado) 
                 }))
             };
             
@@ -195,7 +200,7 @@ const guardar = async () => {
         router.push('/pagos');
     } catch (e: any) {
         if (e.response?.status === 422) {
-            error.value = JSON.stringify(e.response.data.errors);
+            error.value = e.response.data.message || JSON.stringify(e.response.data.errors);
         } else if(e.response?.status === 404) {
              error.value = e.response.data.message;
         } else {
@@ -216,7 +221,10 @@ const guardar = async () => {
                         <h4 class="mb-0 fw-normal">
                             {{ isEditing ? 'Editar Pago' : 'Registrar Nuevo Pago' }}
                         </h4>
-                        <span v-if="isEditing" class="badge bg-white text-primary">{{ route.params.numero_pago }}</span>
+                        <div v-if="isEditing">
+                             <span class="badge bg-white text-primary me-2">{{ route.params.numero_pago }}</span>
+                             <span v-if="estadoPago === 'BORRADOR'" class="badge bg-warning text-dark">BORRADOR</span>
+                        </div>
                     </div>
 
                     <div class="card-body p-4">
@@ -228,7 +236,7 @@ const guardar = async () => {
                             <div class="row g-3 mb-4">
                                 <div class="col-md-4">
                                     <label class="form-label fw-bold">Cliente</label>
-                                    <select v-model="form.cedula_cliente" class="form-select" required>
+                                    <select v-model="form.cedula_cliente" class="form-select" required :disabled="isEditing">
                                         <option value="" disabled>Seleccione un cliente...</option>
                                         <option v-for="cli in clientesDisponibles" :key="cli.cedula" :value="cli.cedula">
                                             {{ cli.nombre }} ({{ cli.cedula }})
@@ -297,7 +305,7 @@ const guardar = async () => {
                                                         v-model.number="nuevoDetalle.monto_pagar" 
                                                         type="number" 
                                                         step="0.01" 
-                                                        min="0.00" 
+                                                        min="0.0" 
                                                         :max="maximoPagable"
                                                         class="form-control" 
                                                         @keyup.enter="agregarDetalle"
