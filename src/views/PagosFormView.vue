@@ -297,7 +297,7 @@ const guardar = async () => {
                                                         v-model.number="nuevoDetalle.monto_pagar" 
                                                         type="number" 
                                                         step="0.01" 
-                                                        min="0.01" 
+                                                        min="0.00" 
                                                         :max="maximoPagable"
                                                         class="form-control" 
                                                         @keyup.enter="agregarDetalle"
