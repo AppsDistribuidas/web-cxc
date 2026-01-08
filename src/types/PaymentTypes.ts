@@ -7,8 +7,7 @@ export interface DetallePago {
     monto_pagado?: number; // El backend devuelve 'monto_pagado' en el response
 }
 
-export type EstadoPago = 'BORRADOR' | 'PROCESADO' | 'INACTIVO';
-
+// Estado ahora booleano: true = activo, false = inactivo
 export interface Pago {
     numero_pago: string;
     cedula_cliente: string;
@@ -17,9 +16,10 @@ export interface Pago {
     cuenta_bancaria?: Cuenta;
     descripcion: string;
     fecha: string;
-    monto_total: number;
-    username: string;
-    estado: EstadoPago;
+    // monto_total se calcula en el frontend si no lo trae el backend
+    monto_total?: number;
+
+    estado: boolean;
     fecha_impresion?: string | null;
     detalles: DetallePago[];
 }

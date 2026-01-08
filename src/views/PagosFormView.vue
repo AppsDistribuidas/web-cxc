@@ -24,8 +24,46 @@ const loading = ref(false);
 const saving = ref(false);
 const error = ref<string | null>(null);
 
-// Variable para mostrar el estado actual al editar
-const estadoPago = ref<string>('');
+// Variable para mostrar el estado actual al editar (booleano: true=activo, false=inactivo)
+const estadoPago = ref<boolean|null>(null);
+const fechaImpresion = ref<string|null>(null);
+
+// Cliente input helper
+const cedulaInput = ref('');
+const selectedClientName = ref('');
+
+const seleccionarClientePorCedula = async () => {
+    const v = (cedulaInput.value || '').toString().trim();
+    if (!v) {
+        form.value.cedula_cliente = '';
+        selectedClientName.value = '';
+        facturasDisponibles.value = [];
+        return;
+    }
+
+    // Buscar exact match por cédula
+    const found = clientesDisponibles.value.find(c => c.cedula === v);
+    if (found) {
+        form.value.cedula_cliente = found.cedula;
+        selectedClientName.value = found.nombre;
+        await cargarFacturasCliente();
+        return;
+    }
+
+    // Buscar por coincidencia parcial en nombre
+    const byName = clientesDisponibles.value.find(c => (c.nombre || '').toLowerCase().includes(v.toLowerCase()));
+    if (byName) {
+        form.value.cedula_cliente = byName.cedula;
+        cedulaInput.value = byName.cedula;
+        selectedClientName.value = byName.nombre;
+        await cargarFacturasCliente();
+        return;
+    }
+
+    // No encontrado: mantener valor y limpiar facturas
+    selectedClientName.value = '';
+    facturasDisponibles.value = [];
+};
 
 // BANDERA PARA CONTROLAR LA EDICIÓN
 const cargandoDatos = ref(false); 
@@ -39,9 +77,19 @@ const nuevoDetalle = ref<DetallePago>({
     monto_pagar: 0
 });
 
+// Helpers: mostrar con guiones para UX, almacenar/enviar sin guiones
+const unformatNumeroFactura = (s: string | null | undefined) => (s ?? '').toString().replace(/\D/g, '');
+const formatNumeroFactura = (s: string | null | undefined) => {
+    const raw = unformatNumeroFactura(s);
+    if (!raw) return '';
+    if (raw.length <= 3) return raw;
+    if (raw.length <= 6) return raw.slice(0,3) + '-' + raw.slice(3);
+    return raw.slice(0,3) + '-' + raw.slice(3,6) + '-' + raw.slice(6);
+};
+
 // --- LÓGICA DE DETALLES ---
 const facturaSeleccionada = computed(() => {
-    return facturasDisponibles.value.find(f => f.numero_factura === nuevoDetalle.value.numero_factura);
+    return facturasDisponibles.value.find(f => unformatNumeroFactura(f.numero_factura) === unformatNumeroFactura(nuevoDetalle.value.numero_factura));
 });
 
 const maximoPagable = computed(() => {
@@ -77,9 +125,20 @@ watch(() => form.value.cedula_cliente, () => {
     // Si estamos cargando datos de edición, NO borramos los detalles ni recargamos innecesariamente
     if (cargandoDatos.value) return;
 
+    // Sincronizar el input libre con el valor efectivo
+    cedulaInput.value = form.value.cedula_cliente || '';
+
     cargarFacturasCliente();
     nuevoDetalle.value = { numero_factura: '', monto_pagar: 0 };
     form.value.detalles = []; 
+});
+
+// Mantener input sincronizado cuando la lista de clientes cambie (por ejemplo al inicializar)
+watch(clientesDisponibles, () => {
+    if (form.value.cedula_cliente) {
+        const found = clientesDisponibles.value.find(c => c.cedula === form.value.cedula_cliente);
+        selectedClientName.value = found ? found.nombre : '';
+    }
 });
 
 const alSeleccionarFactura = () => {
@@ -89,8 +148,9 @@ const alSeleccionarFactura = () => {
 };
 
 const getFacturaInfo = (numeroFactura: string) => {
-    // Busca en las facturas disponibles (Mock)
-    return facturasDisponibles.value.find(f => f.numero_factura === numeroFactura);
+    // Busca en las facturas disponibles comparando solo dígitos (sin guiones)
+    const raw = unformatNumeroFactura(numeroFactura);
+    return facturasDisponibles.value.find(f => unformatNumeroFactura(f.numero_factura) === raw);
 };
 
 onMounted(async () => {
@@ -108,11 +168,13 @@ onMounted(async () => {
             const respPago = await api.get(`/v1/pagos/${route.params.numero_pago}`);
             const data = respPago.data.data;
             
-            estadoPago.value = data.estado; // Guardamos estado para mostrar badge
+            estadoPago.value = !!data.estado; // Guardamos estado (booleano)
+            fechaImpresion.value = data.fecha_impresion ?? null;
 
-            // VALIDACIÓN CRÍTICA: Solo permitir editar si está en BORRADOR
-            if (data.estado !== 'BORRADOR') {
-                alert(`El pago está en estado ${data.estado} y no se puede editar.`);
+            // VALIDACIÓN CRÍTICA: Solo permitir editar si está activo y no procesado
+            if (fechaImpresion.value || !data.estado) {
+                const mensaje = fechaImpresion.value ? 'El pago ya fue procesado y no se puede editar.' : 'El pago está inactivo y no se puede editar.';
+                alert(mensaje);
                 router.push('/pagos');
                 return;
             }
@@ -128,12 +190,19 @@ onMounted(async () => {
                 codigo_cuenta: data.codigo_cuenta,
                 descripcion: data.descripcion,
                 fecha: fechaLimpia,
-                detalles: data.detalles.map((d: any) => ({
-                    numero_factura: d.numero_factura,
-                    // Nota: Backend devuelve 'monto_pagado' en GET, pero el form usa 'monto_pagar'
-                    monto_pagar: Number(d.monto_pagado) 
-                }))
+                detalles: (data.detalles || []).map((d: any) => {
+                    const montoFromBackend = d.monto_pagado ?? d.monto_pagar ?? d.monto ?? 0;
+                    return {
+                        // Guardamos internamente solo los dígitos
+                        numero_factura: unformatNumeroFactura(d.numero_factura),
+                        monto_pagar: Number(montoFromBackend) || 0
+                    };
+                })
             };
+
+            // Rellenamos el input visual de cédula con el mismo formato que en crear (Nombre (Cédula))
+            cedulaInput.value = data.nombre_cliente ? `${data.cedula_cliente}` : data.cedula_cliente;
+            selectedClientName.value = data.nombre_cliente ?? '';
             
             // Cargamos facturas manualmente porque el watch fue bloqueado
             if (form.value.cedula_cliente) {
@@ -157,18 +226,26 @@ const agregarDetalle = () => {
         return;
     }
 
+    // Validamos en base a los dígitos reales (sin guiones)
+    const raw = unformatNumeroFactura(nuevoDetalle.value.numero_factura);
+    if (raw.length !== 15) {
+        alert("El número de factura debe tener exactamente 15 dígitos.");
+        return;
+    }
+
     if (facturaSeleccionada.value && nuevoDetalle.value.monto_pagar > maximoPagable.value) {
         alert(`El monto no puede ser mayor al saldo pendiente ($ ${maximoPagable.value.toFixed(2)})`);
         return;
     }
 
-    const existe = form.value.detalles.some(d => d.numero_factura === nuevoDetalle.value.numero_factura);
+    const existe = form.value.detalles.some(d => unformatNumeroFactura(d.numero_factura) === raw);
     if (existe) {
         alert("Esta factura ya está agregada en la lista.");
         return;
     }
 
-    form.value.detalles.push({ ...nuevoDetalle.value });
+    // Guardamos internamente solo los dígitos (sin guiones)
+    form.value.detalles.push({ numero_factura: raw, monto_pagar: nuevoDetalle.value.monto_pagar });
     nuevoDetalle.value = { numero_factura: '', monto_pagar: 0 };
 };
 
@@ -177,7 +254,7 @@ const eliminarDetalle = (index: number) => {
 };
 
 const totalPago = computed(() => {
-    return form.value.detalles.reduce((acc, item) => acc + item.monto_pagar, 0);
+    return form.value.detalles.reduce((acc, item) => acc + (Number(item.monto_pagar) || 0), 0);
 });
 
 const guardar = async () => {
@@ -190,11 +267,17 @@ const guardar = async () => {
     error.value = null;
 
     try {
+        // Preparamos payload: asegurar que numero_factura sea solo dígitos (15)
+        const payload = {
+            ...form.value,
+            detalles: form.value.detalles.map(d => ({ ...d, numero_factura: unformatNumeroFactura(d.numero_factura) }))
+        };
+
         if (isEditing.value) {
-            await api.put(`/v1/pagos/${route.params.numero_pago}`, form.value);
+            await api.put(`/v1/pagos/${route.params.numero_pago}`, payload);
             alert("Pago actualizado correctamente.");
         } else {
-            await api.post('/v1/pagos', form.value);
+            await api.post('/v1/pagos', payload);
             alert("Pago registrado correctamente.");
         }
         router.push('/pagos');
@@ -218,12 +301,11 @@ const guardar = async () => {
             <div class="col-lg-10">
                 <div class="card shadow border-0">
                     <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
-                        <h4 class="mb-0 fw-normal">
+                        <h4 class="mb-0 fw-normal"> 
                             {{ isEditing ? 'Editar Pago' : 'Registrar Nuevo Pago' }}
                         </h4>
                         <div v-if="isEditing">
                              <span class="badge bg-white text-primary me-2">{{ route.params.numero_pago }}</span>
-                             <span v-if="estadoPago === 'BORRADOR'" class="badge bg-warning text-dark">BORRADOR</span>
                         </div>
                     </div>
 
@@ -236,12 +318,26 @@ const guardar = async () => {
                             <div class="row g-3 mb-4">
                                 <div class="col-md-4">
                                     <label class="form-label fw-bold">Cliente</label>
-                                    <select v-model="form.cedula_cliente" class="form-select" required :disabled="isEditing">
-                                        <option value="" disabled>Seleccione un cliente...</option>
-                                        <option v-for="cli in clientesDisponibles" :key="cli.cedula" :value="cli.cedula">
-                                            {{ cli.nombre }} ({{ cli.cedula }})
+                                    <!-- Input libre para poder escribir la cédula y autoseleccionar -->
+                                    <input
+                                        v-model="cedulaInput"
+                                        @keyup.enter="seleccionarClientePorCedula"
+                                        @blur="seleccionarClientePorCedula"
+                                        list="clientesList"
+                                        type="text"
+                                        class="form-control"
+                                        :placeholder="isEditing ? '' : 'Ingrese cédula o seleccione...'"
+                                        :disabled="isEditing"
+                                        required
+                                    />
+
+                                    <datalist id="clientesList">
+                                        <option v-for="cli in clientesDisponibles.slice(-5)" :key="cli.cedula" :value="cli.cedula">
+                                            ({{ cli.nombre }})
                                         </option>
-                                    </select>
+                                    </datalist>
+
+                                    <div v-if="selectedClientName" class="form-text text-muted mt-1">Nombre cliente: <strong>{{ selectedClientName }}</strong></div>
                                 </div>
 
                                 <div class="col-md-4">
@@ -288,9 +384,9 @@ const guardar = async () => {
                                                     <option 
                                                         v-for="factura in facturasDisponibles" 
                                                         :key="factura.numero_factura" 
-                                                        :value="factura.numero_factura"
+                                                        :value="unformatNumeroFactura(factura.numero_factura)"
                                                     >
-                                                        {{ factura.numero_factura }}
+                                                        {{ formatNumeroFactura(factura.numero_factura) }}
                                                     </option>
                                                 </select>
                                                 <div v-if="facturaSeleccionada" class="form-text mt-1 text-primary">
@@ -339,7 +435,7 @@ const guardar = async () => {
                                         </thead>
                                         <tbody>
                                             <tr v-for="(item, index) in form.detalles" :key="index">
-                                                <td class="ps-3 align-middle">{{ item.numero_factura }}</td>
+                                                <td class="ps-3 align-middle">{{ formatNumeroFactura(item.numero_factura) }}</td>
                                                 
                                                 <td class="text-end align-middle text-muted">
                                                     <span v-if="getFacturaInfo(item.numero_factura)">
