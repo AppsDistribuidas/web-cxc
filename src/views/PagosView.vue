@@ -6,7 +6,6 @@ import { useAuth } from '@/composables/useAuth';
 import type { Pago } from '@/types/PaymentTypes';
 
 const router = useRouter();
-const { can } = useAuth();
 
 const pagos = ref<Pago[]>([]);
 const loading = ref(false);
@@ -19,7 +18,7 @@ const formatearFecha = (fechaString: string) => {
     try {
         // 1. Limpiamos la fecha por si viene con hora o formato ISO
         // Nos quedamos solo con la parte YYYY-MM-DD
-        const soloFecha = fechaString.split('T')[0].split(' ')[0];
+        const soloFecha = fechaString.split('T')[0]?.split(' ')[0] ?? '';
         
         // 2. Creamos la fecha forzando la hora local para evitar desfases
         const fecha = new Date(soloFecha + 'T00:00:00');
@@ -53,6 +52,21 @@ const obtenerPagos = async () => {
         console.error(e);
     } finally {
         loading.value = false;
+    }
+};
+
+const anularPago = async (pago: any) => {
+    if (!confirm(`¿Está seguro de anular el pago ${pago.numero_pago}? Esta acción no se puede deshacer.`)) {
+        return;
+    }
+
+    try {
+        await api.delete(`/v1/pagos/${pago.numero_pago}`);
+        alert("Pago anulado correctamente.");
+        obtenerPagos(); // Recargar la lista para que desaparezca
+    } catch (e: any) {
+        const mensaje = e.response?.data?.message || "Error al anular el pago.";
+        alert(mensaje);
     }
 };
 
@@ -92,7 +106,7 @@ onMounted(() => {
                 <p class="text-muted small mb-0">Registro y control de recaudación de clientes</p>
             </div>
 
-            <button v-if="can('Gestión de Pagos')" 
+            <button 
                     @click="router.push('/pagos/crear')" 
                     class="btn btn-primary shadow-sm">
                 <i class="bi"></i>Nuevo Pago
@@ -174,7 +188,7 @@ onMounted(() => {
                             <td class="text-end pe-4">
                                 <div class="btn-group">
                                     <button 
-                                        v-if="!pago.fecha_impresion && can('Gestión de Pagos')"
+                                        v-if="!pago.fecha_impresion"
                                         @click="router.push(`/pagos/${pago.numero_pago}/editar`)"
                                         class="btn btn-sm btn-outline-primary"
                                         title="Editar">
@@ -186,6 +200,15 @@ onMounted(() => {
                                         class="btn btn-sm btn-outline-secondary"
                                         title="Imprimir Comprobante">
                                         <i class="bi bi-printer"></i>
+                                    </button>
+
+                                    <button 
+                                        v-if="!pago.procesado" 
+                                        @click="anularPago(pago)" 
+                                        class="btn btn-outline-danger" 
+                                        title="Anular/Eliminar"
+                                    >
+                                        <i class="bi bi-trash"></i>
                                     </button>
                                 </div>
                             </td>

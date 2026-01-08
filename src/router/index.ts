@@ -66,19 +66,28 @@ const router = createRouter({
       path: '/pagos',
       name: 'pagos-lista',
       component: PagosView,
-      meta: { requiresAuth: true },
+      meta: {
+        requiresAuth: true,
+        permission: 'Gestión de Pagos',
+      },
     },
     {
       path: '/pagos/crear',
       name: 'pagos-crear',
       component: PagosFormView,
-      meta: { requiresAuth: true },
+      meta: {
+        requiresAuth: true,
+        permission: 'Gestión de Pagos',
+      },
     },
     {
       path: '/pagos/:numero_pago/editar',
       name: 'pagos-editar',
       component: PagosFormView,
-      meta: { requiresAuth: true },
+      meta: {
+        requiresAuth: true,
+        permission: 'Gestión de Pagos',
+      },
     },
     {
       path: '/403',

@@ -22,7 +22,7 @@ const { isAuthenticated, logout, user, can } = useAuth();
           <li v-if="can('Administración cuentas bancarias')" class="nav-item">
             <RouterLink to="/cuentas" class="nav-link" active-class="active">Cuentas Bancarias</RouterLink>
           </li>
-          <li class="nav-item">
+          <li v-if="can('Gestión de Pagos')" class="nav-item">
             <RouterLink to="/pagos" class="nav-link" active-class="active">Pagos</RouterLink>
           </li>
         </ul>
