@@ -202,7 +202,7 @@ onMounted(() => {
                             <td class="text-center">
                                 <div class="btn-group">
                                     <button 
-                                        v-if="!pago.fecha_impresion"
+                                        v-if="pago.estado === 'BORRADOR'"
                                         @click="router.push(`/pagos/${pago.numero_pago}/editar`)"
                                         class="btn btn-sm btn-outline-primary"
                                         title="Editar">

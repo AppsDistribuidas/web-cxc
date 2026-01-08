@@ -259,7 +259,7 @@ const guardar = async () => {
                                     <select v-model="form.codigo_cuenta" class="form-select" required>
                                         <option value="" disabled>Seleccione cuenta...</option>
                                         <option v-for="cta in cuentas" :key="cta.codigo" :value="cta.codigo">
-                                            {{ cta.nombre_cuenta }} ({{ cta.entidad_bancaria?.nombre }})
+                                            {{ cta.codigo }} ({{ cta.entidad_bancaria?.nombre }})
                                         </option>
                                     </select>
                                 </div>
@@ -294,8 +294,8 @@ const guardar = async () => {
                                                     </option>
                                                 </select>
                                                 <div v-if="facturaSeleccionada" class="form-text mt-1 text-primary">
-                                                    <small>Deuda Total Original: <strong>$ {{ Number(facturaSeleccionada.total).toFixed(2) }}</strong></small>
-                                                </div>
+                                                    <small>Deuda: <strong>$ {{ Number(facturaSeleccionada.total).toFixed(2) }}</strong></small>
+                                                </div> 
                                             </div>
                                             
                                             <div class="col-md-4">
@@ -333,7 +333,7 @@ const guardar = async () => {
                                                 <th class="ps-3">Factura</th>
                                                 <th class="text-end">Saldo Pendiente</th>
                                                 <th class="text-end">Abono</th>
-                                                <th class="text-end table-warning text-dark">Saldo Restante</th>
+                                                <th class="text-end">Saldo Restante</th>
                                                 <th class="text-center" style="width: 50px;"></th>
                                             </tr>
                                         </thead>
