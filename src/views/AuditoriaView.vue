@@ -174,8 +174,8 @@ const paginasVisibles = computed(() => {
         pages.push('...');
     }
     
-    // Siempre mostrar última página si no está ya incluida
-    if (!pages.includes(totalPages)) {
+    // Siempre mostrar última página si no está ya incluida en el rango
+    if (endPage < totalPages) {
         pages.push(totalPages);
     }
     
