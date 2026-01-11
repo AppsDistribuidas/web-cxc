@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import api from '@/api/axios';
 import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
 
 interface PistaAuditoria {
     id: number;
