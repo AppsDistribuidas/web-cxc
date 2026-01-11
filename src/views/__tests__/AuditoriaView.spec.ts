@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
-import { nextTick } from 'vue'
+import { mount, flushPromises } from '@vue/test-utils'
 import AuditoriaView from '../AuditoriaView.vue'
 import api from '@/api/axios'
 
@@ -33,11 +32,7 @@ describe('AuditoriaView - Pagination', () => {
     vi.mocked(api.get).mockResolvedValue(createMockApiResponse(5))
 
     const wrapper = mount(AuditoriaView)
-    await nextTick()
-
-    // Wait for the component to load data
-    await new Promise(resolve => setTimeout(resolve, 100))
-    await nextTick()
+    await flushPromises()
 
     const pageButtons = wrapper.findAll('.page-item button')
     const pageNumbers = pageButtons
@@ -51,9 +46,7 @@ describe('AuditoriaView - Pagination', () => {
     vi.mocked(api.get).mockResolvedValue(createMockApiResponse(100, 2))
 
     const wrapper = mount(AuditoriaView)
-    await nextTick()
-    await new Promise(resolve => setTimeout(resolve, 100))
-    await nextTick()
+    await flushPromises()
 
     const pageButtons = wrapper.findAll('.page-item button')
     const pageNumbers = pageButtons
@@ -74,9 +67,7 @@ describe('AuditoriaView - Pagination', () => {
     vi.mocked(api.get).mockResolvedValue(createMockApiResponse(100, 50))
 
     const wrapper = mount(AuditoriaView)
-    await nextTick()
-    await new Promise(resolve => setTimeout(resolve, 100))
-    await nextTick()
+    await flushPromises()
 
     const pageButtons = wrapper.findAll('.page-item button')
     const pageNumbers = pageButtons
@@ -97,9 +88,7 @@ describe('AuditoriaView - Pagination', () => {
     vi.mocked(api.get).mockResolvedValue(createMockApiResponse(100, 99))
 
     const wrapper = mount(AuditoriaView)
-    await nextTick()
-    await new Promise(resolve => setTimeout(resolve, 100))
-    await nextTick()
+    await flushPromises()
 
     const pageButtons = wrapper.findAll('.page-item button')
     const pageNumbers = pageButtons
@@ -120,9 +109,7 @@ describe('AuditoriaView - Pagination', () => {
     vi.mocked(api.get).mockResolvedValue(createMockApiResponse(100, 50))
 
     const wrapper = mount(AuditoriaView)
-    await nextTick()
-    await new Promise(resolve => setTimeout(resolve, 100))
-    await nextTick()
+    await flushPromises()
 
     const ellipsisButtons = wrapper.findAll('.page-item.disabled button').filter(btn => 
       btn.text() === '...'
@@ -137,9 +124,7 @@ describe('AuditoriaView - Pagination', () => {
     vi.mocked(api.get).mockResolvedValue(createMockApiResponse(1000, 500))
 
     const wrapper = mount(AuditoriaView)
-    await nextTick()
-    await new Promise(resolve => setTimeout(resolve, 100))
-    await nextTick()
+    await flushPromises()
 
     const pageButtons = wrapper.findAll('.page-item button')
     const pageNumbers = pageButtons
