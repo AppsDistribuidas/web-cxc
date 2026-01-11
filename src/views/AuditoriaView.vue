@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import api from '@/api/axios';
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 
 interface PistaAuditoria {
@@ -123,6 +123,62 @@ const irAPagina = (pagina: number) => {
         obtenerPistas();
     }
 };
+
+// Computed property para generar páginas visibles de forma eficiente
+const paginasVisibles = computed(() => {
+    if (!pagination.value) return [];
+    
+    const totalPages = pagination.value.total_pages;
+    const current = currentPage.value;
+    const pages: (number | string)[] = [];
+    
+    // Si hay 7 páginas o menos, mostrar todas
+    if (totalPages <= 7) {
+        for (let i = 1; i <= totalPages; i++) {
+            pages.push(i);
+        }
+        return pages;
+    }
+    
+    // Siempre mostrar primera página
+    pages.push(1);
+    
+    // Determinar el rango de páginas alrededor de la actual
+    let startPage = Math.max(2, current - 1);
+    let endPage = Math.min(totalPages - 1, current + 1);
+    
+    // Ajustar si estamos cerca del inicio
+    if (current <= 3) {
+        startPage = 2;
+        endPage = 4;
+    }
+    
+    // Ajustar si estamos cerca del final
+    if (current >= totalPages - 2) {
+        startPage = totalPages - 3;
+        endPage = totalPages - 1;
+    }
+    
+    // Agregar elipsis al inicio si es necesario
+    if (startPage > 2) {
+        pages.push('...');
+    }
+    
+    // Agregar páginas del rango
+    for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+    }
+    
+    // Agregar elipsis al final si es necesario
+    if (endPage < totalPages - 1) {
+        pages.push('...');
+    }
+    
+    // Siempre mostrar última página
+    pages.push(totalPages);
+    
+    return pages;
+});
 
 onMounted(() => {
     obtenerPistas();
@@ -251,11 +307,16 @@ onMounted(() => {
                             <button class="page-link" @click="irAPagina(currentPage - 1)">Anterior</button>
                         </li>
                         <li 
-                            v-for="page in pagination.total_pages" 
-                            :key="page" 
+                            v-for="(page, index) in paginasVisibles" 
+                            :key="index" 
                             class="page-item"
-                            :class="{ active: page === currentPage }">
-                            <button class="page-link" @click="irAPagina(page)">{{ page }}</button>
+                            :class="{ active: page === currentPage, disabled: page === '...' }">
+                            <button 
+                                class="page-link" 
+                                @click="page !== '...' ? irAPagina(page as number) : null"
+                                :disabled="page === '...'">
+                                {{ page }}
+                            </button>
                         </li>
                         <li class="page-item" :class="{ disabled: currentPage === pagination.total_pages }">
                             <button class="page-link" @click="irAPagina(currentPage + 1)">Siguiente</button>
