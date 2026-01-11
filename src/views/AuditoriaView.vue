@@ -21,8 +21,6 @@ interface Pagination {
     limit_applied: number;
 }
 
-const router = useRouter();
-
 const pistas = ref<PistaAuditoria[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
