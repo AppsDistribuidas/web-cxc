@@ -26,6 +26,7 @@ const router = useRouter();
 const pistas = ref<PistaAuditoria[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
+const validationError = ref<string | null>(null);
 
 // Paginación
 const pagination = ref<Pagination | null>(null);
@@ -106,6 +107,19 @@ const obtenerPistas = async () => {
 };
 
 const buscar = () => {
+    validationError.value = null;
+    
+    // Validate date range
+    if (fechaInicio.value && fechaFin.value) {
+        const inicio = new Date(fechaInicio.value);
+        const fin = new Date(fechaFin.value);
+        
+        if (inicio > fin) {
+            validationError.value = 'La fecha de inicio no puede ser posterior a la fecha de fin';
+            return;
+        }
+    }
+    
     currentPage.value = 1;
     obtenerPistas();
 };
@@ -113,6 +127,7 @@ const buscar = () => {
 const limpiarFiltros = () => {
     fechaInicio.value = '';
     fechaFin.value = '';
+    validationError.value = null;
     currentPage.value = 1;
     obtenerPistas();
 };
@@ -163,6 +178,11 @@ onMounted(() => {
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Validation Error -->
+        <div v-if="validationError" class="alert alert-warning shadow-sm">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ validationError }}
         </div>
 
         <!-- Info de registros -->
