@@ -150,12 +150,12 @@ const paginasVisibles = computed(() => {
     // Ajustar si estamos cerca del inicio
     if (current <= 3) {
         startPage = 2;
-        endPage = 4;
+        endPage = Math.min(4, totalPages - 1);
     }
     
     // Ajustar si estamos cerca del final
     if (current >= totalPages - 2) {
-        startPage = totalPages - 3;
+        startPage = Math.max(2, totalPages - 3);
         endPage = totalPages - 1;
     }
     
@@ -174,8 +174,10 @@ const paginasVisibles = computed(() => {
         pages.push('...');
     }
     
-    // Siempre mostrar última página
-    pages.push(totalPages);
+    // Siempre mostrar última página si no está ya incluida
+    if (!pages.includes(totalPages)) {
+        pages.push(totalPages);
+    }
     
     return pages;
 });
