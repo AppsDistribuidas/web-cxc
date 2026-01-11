@@ -157,7 +157,7 @@ const paginasVisibles = computed(() => {
     }
     
     // Agregar elipsis al inicio si es necesario
-    if (startPage > 2) {
+    if (startPage > 3) {
         pages.push('...');
     }
     
