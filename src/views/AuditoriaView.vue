@@ -314,7 +314,8 @@ onMounted(() => {
                             <button 
                                 class="page-link" 
                                 @click="page !== '...' ? irAPagina(page as number) : null"
-                                :disabled="page === '...'">
+                                :disabled="page === '...'"
+                                :aria-label="page === '...' ? 'Más páginas' : null">
                                 {{ page }}
                             </button>
                         </li>
