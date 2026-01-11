@@ -168,7 +168,7 @@ const paginasVisibles = computed(() => {
     }
     
     // Agregar elipsis al final si es necesario
-    if (endPage < totalPages - 1) {
+    if (endPage < totalPages - 2) {
         pages.push('...');
     }
     
