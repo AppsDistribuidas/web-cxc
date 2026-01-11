@@ -114,6 +114,12 @@ const buscar = () => {
         const inicio = new Date(fechaInicio.value);
         const fin = new Date(fechaFin.value);
         
+        // Check for invalid dates
+        if (isNaN(inicio.getTime()) || isNaN(fin.getTime())) {
+            validationError.value = 'Las fechas ingresadas no son válidas';
+            return;
+        }
+        
         if (inicio > fin) {
             validationError.value = 'La fecha de inicio no puede ser posterior a la fecha de fin';
             return;
