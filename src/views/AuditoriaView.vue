@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import api from '@/api/axios';
-import { ref, onMounted, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted } from 'vue';
 
 interface PistaAuditoria {
     id: number;
@@ -20,8 +19,6 @@ interface Pagination {
     total_pages: number;
     limit_applied: number;
 }
-
-const router = useRouter();
 
 const pistas = ref<PistaAuditoria[]>([]);
 const loading = ref(false);
