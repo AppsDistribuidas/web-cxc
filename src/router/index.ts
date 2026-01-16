@@ -14,7 +14,7 @@ import ForbiddenView from '../views/ForbiddenView.vue'
 declare module 'vue-router' {
   interface RouteMeta {
     requiresAuth?: boolean
-    permission?: string
+    permission?: string | string[]
   }
 }
 
@@ -87,6 +87,15 @@ const router = createRouter({
       meta: {
         requiresAuth: true,
         permission: 'Gestión de Pagos',
+      },
+    },
+    {
+      path: '/reportes',
+      name: 'reportes',
+      component: () => import('../views/ReportesView.vue'),
+      meta: {
+        requiresAuth: true,
+        permission: ['Reporte de Pagos', 'Reporte Estado de Cuenta'],
       },
     },
     {
