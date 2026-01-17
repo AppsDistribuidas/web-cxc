@@ -188,7 +188,7 @@ onMounted(async () => {
                                 placeholder="Todos los clientes...">
                             <datalist id="dlPagos">
                                 <option v-for="c in filteredClientesPagos" :key="c.cedula" :value="c.cedula">{{ c.nombre
-                                }}</option>
+                                    }}</option>
                             </datalist>
                         </div>
                         <div class="col-md-3 d-flex gap-2">
@@ -219,6 +219,7 @@ onMounted(async () => {
                                 <span class="text-muted mx-2">|</span>
                                 <small class="text-primary">{{ p.nombre_cliente }}</small>
                                 <small class="text-muted ms-1">({{ p.cedula_cliente }})</small>
+                                <div class="small text-muted fst-italic mt-1">{{ p.descripcion }}</div>
                             </div>
                             <div>
                                 <span class="badge bg-success" style="font-size: 0.9rem;">
@@ -326,7 +327,7 @@ onMounted(async () => {
                             </div>
                             <div>
                                 <span class="badge bg-secondary me-2">Total: ${{ Number(factura.total).toFixed(2)
-                                    }}</span>
+                                }}</span>
                                 <span v-if="Number(factura.saldo_pendiente) > 0" class="badge bg-warning text-dark">
                                     Saldo: ${{ Number(factura.saldo_pendiente).toFixed(2) }}
                                 </span>
