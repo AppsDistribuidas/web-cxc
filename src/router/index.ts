@@ -8,6 +8,7 @@ import CuentasEditarView from '../views/CuentasEditarView.vue'
 import LoginView from '../views/LoginView.vue'
 import PagosView from '../views/PagosView.vue'
 import PagosFormView from '../views/PagosFormView.vue'
+import AuditoriaView from '../views/AuditoriaView.vue'
 import ForbiddenView from '../views/ForbiddenView.vue'
 
 // Extender el tipo RouteMeta para incluir permisos
@@ -87,6 +88,15 @@ const router = createRouter({
       meta: {
         requiresAuth: true,
         permission: 'Gestión de Pagos',
+      },
+    },
+    {
+      path: '/auditoria',
+      name: 'auditoria',
+      component: AuditoriaView,
+      meta: {
+        requiresAuth: true,
+        permission: 'Reporte de Auditorías',
       },
     },
     {
