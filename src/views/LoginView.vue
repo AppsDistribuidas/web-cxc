@@ -56,8 +56,17 @@ const handleLogin = async () => {
     } catch (e: any) {
         console.error(e);
         if (e.response) {
-            // Si el servidor responde con error (ej: 401)
-            error.value = e.response.data.message || "Credenciales incorrectas.";
+            // Si el servidor responde con error
+            const responseData = e.response.data;
+
+            // Verificar si hay un array de errores (400 Bad Request)
+            if (responseData.errors && Array.isArray(responseData.errors)) {
+                // Mostrar el primer error del array o todos concatenados
+                error.value = responseData.errors.join('. ');
+            } else {
+                // Mostrar el mensaje del backend
+                error.value = responseData.message;
+            }
         } else {
             error.value = "Error de conexión con el servicio de seguridad.";
         }
