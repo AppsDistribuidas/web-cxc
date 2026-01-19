@@ -6,7 +6,7 @@ import type { Cuenta, EntidadBancaria } from '@/types/BankingTypes';
 import { useSweetAlert } from '@/composables/useSweetAlert';
 
 const router = useRouter();
-const { showSuccess } = useSweetAlert();
+const { showSuccess, showError } = useSweetAlert();
 
 const form = ref<Partial<Cuenta>>({
     codigo: '',
@@ -17,7 +17,6 @@ const form = ref<Partial<Cuenta>>({
 
 const bancos = ref<EntidadBancaria[]>([]);
 const loading = ref(false);
-const error = ref<string | null>(null);
 
 onMounted(async () => {
     try {
@@ -30,7 +29,6 @@ onMounted(async () => {
 
 const guardar = async () => {
     loading.value = true;
-    error.value = null;
 
     try {
         await api.post('/v1/cuentas-bancarias', form.value);
@@ -39,9 +37,10 @@ const guardar = async () => {
     } catch (e: any) {
         if (e.response?.status === 422) {
             const errors = e.response.data.errors;
-            error.value = Object.values(errors).flat().join('\n');
+            const errorMessages = Object.values(errors).flat().join('\n');
+            await showError(errorMessages);
         } else {
-            error.value = e.response?.data?.message || "Error al guardar la cuenta.";
+            await showError(e.response?.data?.message || "Error al guardar la cuenta.");
         }
     } finally {
         loading.value = false;
@@ -60,9 +59,7 @@ const guardar = async () => {
                     </div>
 
                     <div class="card-body p-4">
-                        <div v-if="error" class="alert alert-danger" role="alert" style="white-space: pre-line;">
-                            {{ error }}
-                        </div>
+
 
                         <form @submit.prevent="guardar">
                             <div class="mb-3">

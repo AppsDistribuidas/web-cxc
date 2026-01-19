@@ -248,15 +248,20 @@ onMounted(async () => {
                                 Acciones
                             </th>
                             <th @click="toggleSort('codigo')" class="ps-4 fw-bold" style="cursor:pointer">
-                                Código <small v-if="sortBy === 'codigo'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</small>
+                                Código <small v-if="sortBy==='codigo'">{{ sortOrder==='asc' ? '▲' : '▼' }}</small>
                             </th>
-                            <th class="fw-bold">Nombre</th>
-                            <th class="fw-bold">Banco</th>
+                            <th @click="toggleSort('nombre_cuenta')" class="fw-bold" style="cursor:pointer">
+                                Nombre <small v-if="sortBy==='nombre_cuenta'">{{ sortOrder==='asc' ? '▲' : '▼' }}</small>
+                            </th>
+                            <th @click="toggleSort('banco_nombre')" class="fw-bold" style="cursor:pointer">
+                                Banco <small v-if="sortBy==='banco_nombre'">{{ sortOrder==='asc' ? '▲' : '▼' }}</small>
+                            </th>
                             <th @click="toggleSort('created_at')" class="text-center fw-bold" style="cursor:pointer">
-                                Fecha Creación <small v-if="sortBy === 'created_at'">{{ sortOrder === 'asc' ? '▲' : '▼'
-                                    }}</small>
+                                Fecha Creación <small v-if="sortBy==='created_at'">{{ sortOrder==='asc' ? '▲' : '▼' }}</small>
                             </th>
-                            <th class="text-center fw-bold">Estado</th>
+                            <th @click="toggleSort('estado')" class="text-center fw-bold" style="cursor:pointer">
+                                Estado <small v-if="sortBy==='estado'">{{ sortOrder==='asc' ? '▲' : '▼' }}</small>
+                            </th>
                         </tr>
                         <!-- Filter row -->
                         <tr class="bg-white">

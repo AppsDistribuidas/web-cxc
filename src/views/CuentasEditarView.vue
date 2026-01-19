@@ -9,7 +9,7 @@ import { useSweetAlert } from '@/composables/useSweetAlert';
 const router = useRouter();
 const route = useRoute();
 const idCuenta = route.params.id as string;
-const { showSuccess } = useSweetAlert();
+const { showSuccess, showError } = useSweetAlert();
 
 const form = ref<Partial<Cuenta>>({
     codigo: '',
@@ -22,7 +22,6 @@ const form = ref<Partial<Cuenta>>({
 const bancos = ref<EntidadBancaria[]>([]);
 const loading = ref(false);
 const submitting = ref(false);
-const error = ref<string | null>(null);
 
 onMounted(async () => {
     loading.value = true;
@@ -46,7 +45,7 @@ onMounted(async () => {
 
     } catch (e) {
         console.error(e);
-        error.value = "Error al cargar los datos de la cuenta.";
+        await showError("Error al cargar los datos de la cuenta.");
     } finally {
         loading.value = false;
     }
@@ -54,7 +53,6 @@ onMounted(async () => {
 
 const actualizar = async () => {
     submitting.value = true;
-    error.value = null;
 
     try {
         // ENVIAR CAMBIOS (PUT)
@@ -66,9 +64,10 @@ const actualizar = async () => {
         if (e.response?.status === 422) {
             // Errores de validación de Laravel
             const errors = e.response.data.errors;
-            error.value = Object.values(errors).flat().join('\n');
+            const errorMessages = Object.values(errors).flat().join('\n');
+            await showError(errorMessages);
         } else {
-            error.value = e.response?.data?.message || "Error al actualizar.";
+            await showError(e.response?.data?.message || "Error al actualizar.");
         }
     } finally {
         submitting.value = false;
@@ -97,10 +96,7 @@ const actualizar = async () => {
                 <div v-else class="card shadow-sm border-0">
                     <div class="card-body p-4">
 
-                        <div v-if="error" class="alert alert-danger d-flex align-items-center" role="alert">
-                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                            <div style="white-space: pre-line;">{{ error }}</div>
-                        </div>
+
 
                         <form @submit.prevent="actualizar">
 
