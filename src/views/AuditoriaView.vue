@@ -36,7 +36,7 @@ const filtroFechaFin = ref('');
 
 // Filtros locales (se aplican sobre los resultados de la página actual)
 const filtroUsuario = ref('');
-const filtroAccion = ref<'all' | 'LOGIN' | 'LOGOUT' | 'CREATE' | 'UPDATE' | 'DELETE' | 'VIEW'>('all');
+const filtroAccion = ref<'all' | 'LOGIN' | 'LOGOUT' | 'CREATE' | 'UPDATE' | 'DELETE' | 'ACTIVATE'>('all');
 const filtroDescripcion = ref('');
 const filtroFuncion = ref('');
 const filtroIP = ref('');
@@ -375,7 +375,7 @@ onMounted(() => {
                                     <option value="CREATE">CREATE</option>
                                     <option value="UPDATE">UPDATE</option>
                                     <option value="DELETE">DELETE</option>
-                                    <option value="VIEW">VIEW</option>
+                                    <option value="ACTIVATE">ACTIVATE</option>
                                 </select>
                             </th>
                             <th>
