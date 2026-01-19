@@ -27,11 +27,12 @@ const { isAuthenticated, logout, user, can } = useAuth();
           </li>
           <li v-if="can('Reporte de Pagos') || can('Reporte Estado de Cuenta')" class="nav-item">
             <RouterLink to="/reportes" class="nav-link" active-class="active">Reportes</RouterLink>
+          </li>
           <li v-if="can('Reporte de Auditorías')" class="nav-item">
             <RouterLink to="/auditoria" class="nav-link" active-class="active">Auditoría</RouterLink>
           </li>
         </ul>
-
+        
         <div class="d-flex align-items-center gap-3 text-light">
           <small>Hola, <strong>{{ user?.username || 'Usuario' }}</strong></small>
           <button @click="logout" class="btn btn-danger btn-sm">

@@ -2,8 +2,10 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import api from '@/api/axios';
 import { useAuth } from '@/composables/useAuth';
+import { useSweetAlert } from '@/composables/useSweetAlert';
 
 const { can } = useAuth();
+const { showSuccess, showError, showWarning } = useSweetAlert();
 
 // --- ESTADO GENERAL ---
 const activeTab = ref<'pagos' | 'estadoCuenta'>('pagos');
@@ -20,13 +22,15 @@ onMounted(() => {
 
 // --- PESTAÑA: REPORTE DE PAGOS ---
 const pagosFilter = ref({
-    fecha_inicio: new Date().toISOString().split('T')[0],
-    fecha_fin: new Date().toISOString().split('T')[0],
+    fecha_inicio: new Date().toISOString().split('T')[0] as string,
+    fecha_fin: new Date().toISOString().split('T')[0] as string,
     cedula_cliente: ''
 });
 
 const pagosResultados = ref<any[]>([]);
 const pagosLoading = ref(false);
+const pagosPaginaActual = ref(1);
+const pagosPorPagina = 5;
 
 // Clientes para autocompletar (reutilizado)
 const clientesDisponibles = ref<any[]>([]);
@@ -39,8 +43,45 @@ const filteredClientesPagos = computed(() => {
     ).slice(0, 10);
 });
 
+// Paginación de pagos
+const pagosPaginados = computed(() => {
+    const inicio = (pagosPaginaActual.value - 1) * pagosPorPagina;
+    return pagosResultados.value.slice(inicio, inicio + pagosPorPagina);
+});
+
+const pagosTotalPaginas = computed(() => Math.ceil(pagosResultados.value.length / pagosPorPagina));
+
+// Validación de fechas
+const validarFechas = (fechaInicio: string, fechaFin: string): boolean => {
+    if (!fechaInicio || !fechaFin) {
+        showError('Ambas fechas son requeridas.', 'Fechas inválidas');
+        return false;
+    }
+    if (new Date(fechaFin) < new Date(fechaInicio)) {
+        showError('La fecha de fin no puede ser menor a la fecha de inicio.', 'Fechas inválidas');
+        return false;
+    }
+    return true;
+};
+
+// Validación de cliente
+const validarCliente = (cedula: string): boolean => {
+    if (!cedula) return true; // Cliente es opcional en reporte de pagos
+    const existe = clientesDisponibles.value.some(c => c.cedula === cedula);
+    if (!existe) {
+        showError(`No se encontró un cliente con la cédula "${cedula}".`, 'Cliente no encontrado');
+        return false;
+    }
+    return true;
+};
+
 const generarReportePagos = async (type: 'json' | 'pdf') => {
+    // Validaciones
+    if (!validarFechas(pagosFilter.value.fecha_inicio, pagosFilter.value.fecha_fin)) return;
+    if (!validarCliente(pagosFilter.value.cedula_cliente)) return;
+
     pagosLoading.value = true;
+    pagosPaginaActual.value = 1; // Reset paginación
     try {
         const params = { ...pagosFilter.value };
         if (type === 'pdf') {
@@ -51,12 +92,21 @@ const generarReportePagos = async (type: 'json' | 'pdf') => {
             link.setAttribute('download', 'reporte_pagos.pdf');
             document.body.appendChild(link);
             link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            showSuccess('El reporte de pagos se ha descargado correctamente.', '¡PDF Generado!');
         } else {
             const response = await api.get('/v1/reportes/pagos', { params });
             pagosResultados.value = response.data.data;
+            if (pagosResultados.value.length === 0) {
+                showWarning('No se encontraron pagos en el rango de fechas especificado.');
+            } else {
+                showSuccess(`Se encontraron ${pagosResultados.value.length} pago(s).`, 'Consulta exitosa');
+            }
         }
-    } catch (e) {
-        alert("Error al generar reporte de pagos. Verifique las fechas.");
+    } catch (e: any) {
+        const mensaje = e.response?.data?.message || 'Error al generar reporte de pagos. Verifique las fechas.';
+        showError(mensaje);
         console.error(e);
     } finally {
         pagosLoading.value = false;
@@ -66,12 +116,14 @@ const generarReportePagos = async (type: 'json' | 'pdf') => {
 // --- PESTAÑA: ESTADO DE CUENTA ---
 const estadoCuentaFilter = ref({
     cedula_cliente: '',
-    fecha_inicio: new Date().toISOString().split('T')[0],
-    fecha_fin: new Date().toISOString().split('T')[0]
+    fecha_inicio: new Date().toISOString().split('T')[0] as string,
+    fecha_fin: new Date().toISOString().split('T')[0] as string
 });
 const estadoCuentaData = ref<any>(null); // Objeto con estructura { cliente, resumen, facturas }
 const estadoCuentaLoading = ref(false);
 const estadoCuentaAutocompletar = ref(''); // Input separado para búsqueda
+const estadoCuentaPaginaActual = ref(1);
+const estadoCuentaPorPagina = 5;
 
 const filteredClientesEstado = computed(() => {
     if (!estadoCuentaAutocompletar.value) return clientesDisponibles.value.slice(0, 10);
@@ -82,12 +134,51 @@ const filteredClientesEstado = computed(() => {
     ).slice(0, 10);
 });
 
+// Nombre del cliente seleccionado para mostrar
+const nombreClienteSeleccionado = computed(() => {
+    if (!estadoCuentaFilter.value.cedula_cliente) return '';
+    const cliente = clientesDisponibles.value.find(c => c.cedula === estadoCuentaFilter.value.cedula_cliente);
+    return cliente ? cliente.nombre : '';
+});
+
+// Watch para limpiar nombre cuando se borra la cédula
+watch(estadoCuentaAutocompletar, (newVal) => {
+    if (!newVal || newVal.trim() === '') {
+        estadoCuentaFilter.value.cedula_cliente = '';
+    }
+});
+
+// Paginación de facturas en estado de cuenta
+const facturasPaginadas = computed(() => {
+    if (!estadoCuentaData.value?.facturas) return [];
+    const inicio = (estadoCuentaPaginaActual.value - 1) * estadoCuentaPorPagina;
+    return estadoCuentaData.value.facturas.slice(inicio, inicio + estadoCuentaPorPagina);
+});
+
+const facturasTotalPaginas = computed(() => {
+    if (!estadoCuentaData.value?.facturas) return 0;
+    return Math.ceil(estadoCuentaData.value.facturas.length / estadoCuentaPorPagina);
+});
+
 const generarEstadoCuenta = async (type: 'json' | 'pdf') => {
+    // Validar cliente obligatorio
     if (!estadoCuentaFilter.value.cedula_cliente) {
-        alert("Debe seleccionar un cliente.");
+        showError('Debe seleccionar un cliente.', 'Cliente requerido');
         return;
     }
+
+    // Validar que el cliente exista
+    const clienteExiste = clientesDisponibles.value.some(c => c.cedula === estadoCuentaFilter.value.cedula_cliente);
+    if (!clienteExiste) {
+        showError('El cliente seleccionado no existe en el sistema.', 'Cliente no encontrado');
+        return;
+    }
+
+    // Validar fechas
+    if (!validarFechas(estadoCuentaFilter.value.fecha_inicio, estadoCuentaFilter.value.fecha_fin)) return;
+
     estadoCuentaLoading.value = true;
+    estadoCuentaPaginaActual.value = 1; // Reset paginación
     try {
         const params = {
             cedula_cliente: estadoCuentaFilter.value.cedula_cliente,
@@ -103,12 +194,17 @@ const generarEstadoCuenta = async (type: 'json' | 'pdf') => {
             link.setAttribute('download', 'estado_cuenta.pdf');
             document.body.appendChild(link);
             link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            showSuccess('El estado de cuenta se ha descargado correctamente.', '¡PDF Generado!');
         } else {
             const response = await api.get('/v1/reportes/estado-cuenta', { params });
             estadoCuentaData.value = response.data.data;
+            showSuccess('Estado de cuenta generado correctamente.', 'Consulta exitosa');
         }
-    } catch (e) {
-        alert("Error al generar estado de cuenta.");
+    } catch (e: any) {
+        const mensaje = e.response?.data?.message || 'Error al generar estado de cuenta.';
+        showError(mensaje);
         console.error(e);
     } finally {
         estadoCuentaLoading.value = false;
@@ -191,14 +287,18 @@ onMounted(async () => {
                                     }}</option>
                             </datalist>
                         </div>
-                        <div class="col-md-3 d-flex gap-2">
-                            <button @click="generarReportePagos('json')" class="btn btn-primary flex-grow-1"
-                                :disabled="pagosLoading">
-                                <i class="bi bi-search"></i> Consultar
-                            </button>
-                            <button @click="generarReportePagos('pdf')" class="btn btn-danger" :disabled="pagosLoading">
-                                <i class="bi bi-file-pdf"></i> PDF
-                            </button>
+                        <div class="col-md-3">
+                            <label class="form-label invisible">Acciones</label>
+                            <div class="d-flex gap-2">
+                                <button @click="generarReportePagos('json')" class="btn btn-primary flex-grow-1"
+                                    :disabled="pagosLoading">
+                                    <i class="bi bi-search"></i> Consultar
+                                </button>
+                                <button @click="generarReportePagos('pdf')" class="btn btn-danger"
+                                    :disabled="pagosLoading">
+                                    <i class="bi bi-file-pdf"></i> PDF
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -210,7 +310,7 @@ onMounted(async () => {
 
             <div v-else-if="pagosResultados.length > 0" class="card border-0 shadow">
                 <div class="card-body">
-                    <div v-for="p in pagosResultados" :key="p.numero_pago" class="mb-4">
+                    <div v-for="p in pagosPaginados" :key="p.numero_pago" class="mb-4">
                         <div class="d-flex justify-content-between align-items-center bg-light p-2 rounded">
                             <div>
                                 <strong>Pago {{ p.numero_pago }}</strong>
@@ -219,14 +319,20 @@ onMounted(async () => {
                                 <span class="text-muted mx-2">|</span>
                                 <small class="text-primary">{{ p.nombre_cliente }}</small>
                                 <small class="text-muted ms-1">({{ p.cedula_cliente }})</small>
-                                <div class="small text-muted fst-italic mt-1">{{ p.descripcion }}</div>
                             </div>
                             <div>
                                 <span class="badge bg-success" style="font-size: 0.9rem;">
                                     Total: ${{Number(p.detalles.reduce((acc: number, cur: any) => acc +
-                                        Number(cur.monto_pagado), 0)).toFixed(2) }}
+                                        Number(cur.monto_pagado), 0)).toFixed(2)}}
                                 </span>
                             </div>
+                        </div>
+
+                        <!-- Descripción del pago -->
+                        <div v-if="p.descripcion" class="ps-2 mt-1">
+                            <small class="text-muted fst-italic text-truncate d-block" style="max-width: 100%;">
+                                <i class="bi bi-chat-left-text me-1"></i>{{ p.descripcion }}
+                            </small>
                         </div>
 
                         <!-- Lista de facturas de este pago -->
@@ -234,16 +340,20 @@ onMounted(async () => {
                             <table class="table table-sm table-borderless mb-0 small">
                                 <thead>
                                     <tr class="text-muted border-bottom">
-                                        <th style="width: 40%">Factura Cancelada</th>
+                                        <th style="width: 30%">Factura Cancelada</th>
+                                        <th style="width: 20%">Fecha Factura</th>
+                                        <th class="text-end" style="width: 20%">Total Factura</th>
                                         <th class="text-end" style="width: 20%">Monto Cancelado</th>
-                                        <th></th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr v-for="d in p.detalles" :key="d.id">
                                         <td>Factura {{ formatFactura(d.numero_factura) }}</td>
-                                        <td class="text-end fw-bold">${{ Number(d.monto_pagado).toFixed(2) }}</td>
-                                        <td></td>
+                                        <td>{{ d.fecha_factura?.substring(0, 10) || 'N/A' }}</td>
+                                        <td class="text-end text-muted">${{ Number(d.total_factura || 0).toFixed(2) }}
+                                        </td>
+                                        <td class="text-end fw-bold text-success">${{ Number(d.monto_pagado).toFixed(2)
+                                        }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -252,6 +362,28 @@ onMounted(async () => {
                             Sin detalles registrados.
                         </div>
                     </div>
+
+                    <!-- Paginación Pagos -->
+                    <nav v-if="pagosTotalPaginas > 1" class="d-flex justify-content-center mt-4">
+                        <ul class="pagination mb-0">
+                            <li class="page-item" :class="{ disabled: pagosPaginaActual === 1 }">
+                                <button class="page-link" @click="pagosPaginaActual--"
+                                    :disabled="pagosPaginaActual === 1">
+                                    <i class="bi bi-chevron-left"></i>
+                                </button>
+                            </li>
+                            <li v-for="p in pagosTotalPaginas" :key="p" class="page-item"
+                                :class="{ active: pagosPaginaActual === p }">
+                                <button class="page-link" @click="pagosPaginaActual = p">{{ p }}</button>
+                            </li>
+                            <li class="page-item" :class="{ disabled: pagosPaginaActual === pagosTotalPaginas }">
+                                <button class="page-link" @click="pagosPaginaActual++"
+                                    :disabled="pagosPaginaActual === pagosTotalPaginas">
+                                    <i class="bi bi-chevron-right"></i>
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
                 </div>
             </div>
             <div v-else class="alert alert-secondary text-center mt-4">
@@ -273,24 +405,33 @@ onMounted(async () => {
                                 <option v-for="c in filteredClientesEstado" :key="c.cedula" :value="c.cedula">{{
                                     c.nombre }}</option>
                             </datalist>
+                            <div class="form-text" :class="nombreClienteSeleccionado ? 'text-primary' : 'invisible'">
+                                <i class="bi bi-person-check me-1"></i>{{ nombreClienteSeleccionado || 'Placeholder' }}
+                            </div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold">Fecha Inicio</label>
                             <input v-model="estadoCuentaFilter.fecha_inicio" type="date" class="form-control">
+                            <div class="form-text invisible">Placeholder</div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold">Fecha Fin</label>
                             <input v-model="estadoCuentaFilter.fecha_fin" type="date" class="form-control">
+                            <div class="form-text invisible">Placeholder</div>
                         </div>
-                        <div class="col-md-2 d-flex gap-2">
-                            <button @click="generarEstadoCuenta('json')" class="btn btn-primary flex-grow-1"
-                                :disabled="estadoCuentaLoading || !estadoCuentaFilter.cedula_cliente">
-                                <i class="bi bi-eye"></i> Ver
-                            </button>
-                            <button @click="generarEstadoCuenta('pdf')" class="btn btn-danger"
-                                :disabled="estadoCuentaLoading || !estadoCuentaFilter.cedula_cliente">
-                                <i class="bi bi-file-pdf"></i> PDF
-                            </button>
+                        <div class="col-md-2">
+                            <label class="form-label invisible">Acciones</label>
+                            <div class="d-flex gap-2">
+                                <button @click="generarEstadoCuenta('json')" class="btn btn-primary flex-grow-1"
+                                    :disabled="estadoCuentaLoading || !estadoCuentaFilter.cedula_cliente">
+                                    <i class="bi bi-eye"></i> Ver
+                                </button>
+                                <button @click="generarEstadoCuenta('pdf')" class="btn btn-danger"
+                                    :disabled="estadoCuentaLoading || !estadoCuentaFilter.cedula_cliente">
+                                    <i class="bi bi-file-pdf"></i> PDF
+                                </button>
+                            </div>
+                            <div class="form-text invisible">Placeholder</div>
                         </div>
                     </div>
                 </div>
@@ -309,16 +450,27 @@ onMounted(async () => {
                             <small class="text-muted">Generado: {{ estadoCuentaData.fecha_generacion }}</small>
                         </div>
                         <div class="text-end">
-                            <h4 class="mb-0 text-success">Total Pendiente</h4>
-                            <h2 class="fw-bold">$ {{ Number(estadoCuentaData.resumen.total_pendiente).toFixed(2) }}</h2>
-                            <div class="small text-muted">Total Facturado: $ {{
-                                Number(estadoCuentaData.resumen.total_facturado).toFixed(2) }}</div>
+                            <div class="mb-2">
+                                <span class="text-muted">Total Facturado:</span>
+                                <span class="fw-bold ms-2">$ {{
+                                    Number(estadoCuentaData.resumen.total_facturado).toFixed(2) }}</span>
+                            </div>
+                            <div class="mb-2">
+                                <span class="text-warning">Pagos Pendientes:</span>
+                                <span class="fw-bold text-warning ms-2">$ {{
+                                    Number(estadoCuentaData.resumen.total_pagos_pendientes || 0).toFixed(2) }}</span>
+                            </div>
+                            <div>
+                                <span class="text-success fw-bold">Saldo Total Pendiente:</span>
+                                <h3 class="fw-bold text-success mb-0 d-inline ms-2">$ {{
+                                    Number(estadoCuentaData.resumen.total_pendiente).toFixed(2) }}</h3>
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div class="card-body">
                     <hr>
-                    <div v-for="factura in estadoCuentaData.facturas" :key="factura.numero_factura" class="mb-4">
+                    <div v-for="factura in facturasPaginadas" :key="factura.numero_factura" class="mb-4">
                         <div class="d-flex justify-content-between align-items-center bg-light p-2 rounded">
                             <div>
                                 <strong>Factura {{ formatFactura(factura.numero_factura) }}</strong>
@@ -368,6 +520,29 @@ onMounted(async () => {
                             No se han registrado pagos para esta factura.
                         </div>
                     </div>
+
+                    <!-- Paginación Estado de Cuenta -->
+                    <nav v-if="facturasTotalPaginas > 1" class="d-flex justify-content-center mt-4">
+                        <ul class="pagination mb-0">
+                            <li class="page-item" :class="{ disabled: estadoCuentaPaginaActual === 1 }">
+                                <button class="page-link" @click="estadoCuentaPaginaActual--"
+                                    :disabled="estadoCuentaPaginaActual === 1">
+                                    <i class="bi bi-chevron-left"></i>
+                                </button>
+                            </li>
+                            <li v-for="p in facturasTotalPaginas" :key="p" class="page-item"
+                                :class="{ active: estadoCuentaPaginaActual === p }">
+                                <button class="page-link" @click="estadoCuentaPaginaActual = p">{{ p }}</button>
+                            </li>
+                            <li class="page-item"
+                                :class="{ disabled: estadoCuentaPaginaActual === facturasTotalPaginas }">
+                                <button class="page-link" @click="estadoCuentaPaginaActual++"
+                                    :disabled="estadoCuentaPaginaActual === facturasTotalPaginas">
+                                    <i class="bi bi-chevron-right"></i>
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
                 </div>
             </div>
 
