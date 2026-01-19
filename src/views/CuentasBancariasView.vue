@@ -84,7 +84,14 @@ const limpiarFiltros = () => {
 };
 
 const cambiarOrdenamiento = (campo: string) => {
-    sortBy.value = campo;
+    if (campo === sortBy.value) {
+        // Toggle sort order when the same field is selected again
+        sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        // Change sort field and reset sort order to ascending
+        sortBy.value = campo;
+        sortOrder.value = 'asc';
+    }
     obtenerCuentas(1); // Reset to page 1 when sorting changes
 };
 
