@@ -35,16 +35,22 @@ const bancos = ref<EntidadBancaria[]>([]);
 
 // Computed property for smart pagination
 const paginationRange = computed(() => {
-    const total = lastPage.value;
+    const totalPages = lastPage.value;
     const current = currentPage.value;
+    
+    // Guard clause: handle edge cases where there are no pages
+    if (totalPages < 1) {
+        return [];
+    }
+
     const delta = 2; // Number of pages to show around current page
     const range: number[] = [];
     const rangeWithDots: (number | string)[] = [];
     let l: number | undefined;
 
     // Always show first page, last page, and pages around current page
-    for (let i = 1; i <= total; i++) {
-        if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= current - delta && i <= current + delta)) {
             range.push(i);
         }
     }
@@ -63,6 +69,8 @@ const paginationRange = computed(() => {
     }
 
     return rangeWithDots;
+});
+
 // Computed property for table colspan based on user permissions
 const tableColspan = computed(() => {
     return can('Administración cuentas bancarias') ? 5 : 4;
