@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import api from '@/api/axios';
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 
 interface PistaAuditoria {
     id: number;
@@ -20,19 +20,40 @@ interface Pagination {
     limit_applied: number;
 }
 
+const allPistas = ref<PistaAuditoria[]>([]);
 const pistas = ref<PistaAuditoria[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
-const validationError = ref<string | null>(null);
 
 // Paginación
 const pagination = ref<Pagination | null>(null);
 const currentPage = ref(1);
 const limit = ref(15);
 
-// Filtros
-const fechaInicio = ref('');
-const fechaFin = ref('');
+// Filtros de API (se envían al servidor para filtrar todos los registros)
+const filtroFechaInicio = ref('');
+const filtroFechaFin = ref('');
+
+// Filtros locales (se aplican sobre los resultados de la página actual)
+const filtroUsuario = ref('');
+const filtroAccion = ref<'all' | 'LOGIN' | 'LOGOUT' | 'CREATE' | 'UPDATE' | 'DELETE' | 'ACTIVATE'>('all');
+const filtroDescripcion = ref('');
+const filtroFuncion = ref('');
+const filtroIP = ref('');
+
+// Ordenamiento
+const sortBy = ref<string | null>('fecha');
+const sortDir = ref<'asc' | 'desc'>('desc');
+
+const toggleSort = (key: string) => {
+    if (sortBy.value === key) {
+        sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortBy.value = key;
+        sortDir.value = 'asc';
+    }
+    aplicarFiltrosLocales();
+};
 
 const formatearFecha = (fechaString: string) => {
     if (!fechaString) return 'N/A';
@@ -66,6 +87,70 @@ const getBadgeClass = (accion: string) => {
     return clases[accion] || 'bg-light text-dark';
 };
 
+const aplicarFiltrosLocales = () => {
+    let resultado = allPistas.value.slice();
+
+    // Filtro por usuario (parcial)
+    if (filtroUsuario.value.trim()) {
+        const q = filtroUsuario.value.trim().toLowerCase();
+        resultado = resultado.filter(p => (p.usuario?.username ?? '').toLowerCase().includes(q));
+    }
+
+    // Filtro por acción
+    if (filtroAccion.value !== 'all') {
+        resultado = resultado.filter(p => p.accion === filtroAccion.value);
+    }
+
+    // Filtro por descripción (parcial)
+    if (filtroDescripcion.value.trim()) {
+        const q = filtroDescripcion.value.trim().toLowerCase();
+        resultado = resultado.filter(p => (p.descripcion ?? '').toLowerCase().includes(q));
+    }
+
+    // Filtro por función (parcial)
+    if (filtroFuncion.value.trim()) {
+        const q = filtroFuncion.value.trim().toLowerCase();
+        resultado = resultado.filter(p => (p.funcion?.nombre ?? '').toLowerCase().includes(q));
+    }
+
+    // Filtro por IP (parcial)
+    if (filtroIP.value.trim()) {
+        const q = filtroIP.value.trim().toLowerCase();
+        resultado = resultado.filter(p => (p.ipUsuario ?? '').toLowerCase().includes(q));
+    }
+
+    // Ordenamiento
+    if (sortBy.value) {
+        resultado.sort((a: any, b: any) => {
+            let aVal: string;
+            let bVal: string;
+            
+            // Manejar campos anidados
+            if (sortBy.value === 'usuario') {
+                aVal = (a.usuario?.username ?? '').toString();
+                bVal = (b.usuario?.username ?? '').toString();
+            } else if (sortBy.value === 'funcion') {
+                aVal = (a.funcion?.nombre ?? '').toString();
+                bVal = (b.funcion?.nombre ?? '').toString();
+            } else {
+                aVal = (a[sortBy.value!] ?? '').toString();
+                bVal = (b[sortBy.value!] ?? '').toString();
+            }
+            
+            // Para fechas, comparar como fechas
+            if (sortBy.value === 'fecha') {
+                const dateA = new Date(aVal).getTime() || 0;
+                const dateB = new Date(bVal).getTime() || 0;
+                return sortDir.value === 'asc' ? dateA - dateB : dateB - dateA;
+            }
+            
+            return sortDir.value === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        });
+    }
+
+    pistas.value = resultado;
+};
+
 const obtenerPistas = async () => {
     loading.value = true;
     error.value = null;
@@ -76,18 +161,20 @@ const obtenerPistas = async () => {
             limit: limit.value,
         };
         
-        if (fechaInicio.value) {
-            params.fecha_inicio = fechaInicio.value;
+        // Enviar filtros de fecha a la API
+        if (filtroFechaInicio.value) {
+            params.fecha_inicio = filtroFechaInicio.value;
         }
-        if (fechaFin.value) {
-            params.fecha_fin = fechaFin.value;
+        if (filtroFechaFin.value) {
+            params.fecha_fin = filtroFechaFin.value;
         }
 
         const response = await api.get('/v1/reportes/auditoria', { params });
         
         if (response.data.success) {
-            pistas.value = response.data.data || [];
+            allPistas.value = response.data.data || [];
             pagination.value = response.data.pagination || null;
+            aplicarFiltrosLocales();
         } else {
             error.value = response.data.message || 'Error al obtener las pistas';
         }
@@ -103,37 +190,36 @@ const obtenerPistas = async () => {
     }
 };
 
-const buscar = () => {
-    validationError.value = null;
-    
-    // Validate date range
-    if (fechaInicio.value && fechaFin.value) {
-        const inicio = new Date(fechaInicio.value);
-        const fin = new Date(fechaFin.value);
-        
-        // Check for invalid dates
-        if (isNaN(inicio.getTime()) || isNaN(fin.getTime())) {
-            validationError.value = 'Las fechas ingresadas no son válidas';
-            return;
-        }
-        
-        if (inicio > fin) {
-            validationError.value = 'La fecha de inicio no puede ser posterior a la fecha de fin';
-            return;
-        }
-    }
-    
+const limpiarFiltros = () => {
+    // Limpiar filtros de API
+    filtroFechaInicio.value = '';
+    filtroFechaFin.value = '';
+    // Limpiar filtros locales
+    filtroUsuario.value = '';
+    filtroAccion.value = 'all';
+    filtroDescripcion.value = '';
+    filtroFuncion.value = '';
+    filtroIP.value = '';
     currentPage.value = 1;
     obtenerPistas();
 };
 
-const limpiarFiltros = () => {
-    fechaInicio.value = '';
-    fechaFin.value = '';
-    validationError.value = null;
+// Función para buscar con los filtros de fecha (recarga desde API)
+const buscarPorFecha = () => {
     currentPage.value = 1;
     obtenerPistas();
 };
+
+
+
+// Watch para aplicar filtros locales automáticamente con debounce
+let timeout: number;
+watch([filtroUsuario, filtroAccion, filtroDescripcion, filtroFuncion, filtroIP], () => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+        aplicarFiltrosLocales();
+    }, 300);
+});
 
 const irAPagina = (pagina: number) => {
     if (pagina >= 1 && pagina <= (pagination.value?.total_pages || 1)) {
@@ -214,42 +300,31 @@ onMounted(() => {
             </div>
         </div>
 
-        <!-- Filtros -->
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-body">
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-3">
-                        <label class="form-label small text-muted">Fecha Inicio</label>
-                        <input type="date" v-model="fechaInicio" class="form-control">
+        <!-- Filtros de fecha y controles -->
+        <div class="card shadow-sm border-0 mb-4 bg-light">
+            <div class="card-body py-2">
+                <div class="row align-items-center g-2">
+                    <div class="col-auto">
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 small text-muted">Desde:</label>
+                            <input type="date" v-model="filtroFechaInicio" class="form-control form-control-sm" style="width: 140px;">
+                            <label class="form-label mb-0 small text-muted">Hasta:</label>
+                            <input type="date" v-model="filtroFechaFin" class="form-control form-control-sm" style="width: 140px;">
+                            <button @click="buscarPorFecha" class="btn btn-primary btn-sm">
+                                <i class="bi bi-search"></i> Buscar
+                            </button>
+                        </div>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label small text-muted">Fecha Fin</label>
-                        <input type="date" v-model="fechaFin" class="form-control">
-                    </div>
-                    <div class="col-md-6 d-flex gap-2">
-                        <button @click="buscar" class="btn btn-primary">
-                            <i class="bi bi-search me-1"></i> Buscar
+                    <div class="col text-end">
+                        <button @click="limpiarFiltros" class="btn btn-outline-secondary btn-sm me-2" title="Limpiar filtros">
+                            <i class="bi bi-x-circle"></i> Limpiar
                         </button>
-                        <button @click="limpiarFiltros" class="btn btn-outline-secondary">
-                            <i class="bi bi-x-circle me-1"></i> Limpiar
-                        </button>
-                        <button @click="obtenerPistas" class="btn btn-outline-secondary" title="Actualizar">
-                            <i class="bi bi-arrow-clockwise"></i>
+                        <button @click="obtenerPistas" class="btn btn-outline-secondary btn-sm" title="Actualizar">
+                            <i class="bi bi-arrow-clockwise"></i> Refrescar
                         </button>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Validation Error -->
-        <div v-if="validationError" class="alert alert-warning shadow-sm">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ validationError }}
-        </div>
-
-        <!-- Info de registros -->
-        <div class="card shadow-sm border-0 mb-4 bg-light" v-if="pagination">
-            <div class="card-body py-2">
-                <div class="row align-items-center">
+                <div class="row mt-2" v-if="pagination">
                     <div class="col">
                         <span class="text-muted small">
                             Mostrando <strong>{{ pistas.length }}</strong> de <strong>{{ pagination.total_records }}</strong> registros
@@ -277,12 +352,41 @@ onMounted(() => {
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light text-secondary">
                         <tr>
-                            <th class="ps-3">Fecha/Hora</th>
-                            <th>Usuario</th>
-                            <th>Acción</th>
-                            <th>Descripción</th>
-                            <th>Función</th>
-                            <th>IP</th>
+                            <th class="ps-3" @click="toggleSort('fecha')" style="cursor:pointer">Fecha/Hora <small v-if="sortBy==='fecha'">{{ sortDir==='asc' ? '▲' : '▼' }}</small></th>
+                            <th @click="toggleSort('usuario')" style="cursor:pointer">Usuario <small v-if="sortBy==='usuario'">{{ sortDir==='asc' ? '▲' : '▼' }}</small></th>
+                            <th @click="toggleSort('accion')" style="cursor:pointer">Acción <small v-if="sortBy==='accion'">{{ sortDir==='asc' ? '▲' : '▼' }}</small></th>
+                            <th @click="toggleSort('descripcion')" style="cursor:pointer">Descripción <small v-if="sortBy==='descripcion'">{{ sortDir==='asc' ? '▲' : '▼' }}</small></th>
+                            <th @click="toggleSort('funcion')" style="cursor:pointer">Función <small v-if="sortBy==='funcion'">{{ sortDir==='asc' ? '▲' : '▼' }}</small></th>
+                            <th @click="toggleSort('ipUsuario')" style="cursor:pointer">IP <small v-if="sortBy==='ipUsuario'">{{ sortDir==='asc' ? '▲' : '▼' }}</small></th>
+                        </tr>
+                        <!-- Filter row -->
+                        <tr class="bg-white">
+                            <th class="ps-3">
+                                <!-- Fecha se filtra arriba -->
+                            </th>
+                            <th>
+                                <input v-model="filtroUsuario" class="form-control form-control-sm" placeholder="Usuario">
+                            </th>
+                            <th>
+                                <select v-model="filtroAccion" class="form-select form-select-sm">
+                                    <option value="all">Todas</option>
+                                    <option value="LOGIN">LOGIN</option>
+                                    <option value="LOGOUT">LOGOUT</option>
+                                    <option value="CREATE">CREATE</option>
+                                    <option value="UPDATE">UPDATE</option>
+                                    <option value="DELETE">DELETE</option>
+                                    <option value="ACTIVATE">ACTIVATE</option>
+                                </select>
+                            </th>
+                            <th>
+                                <input v-model="filtroDescripcion" class="form-control form-control-sm" placeholder="Descripción">
+                            </th>
+                            <th>
+                                <input v-model="filtroFuncion" class="form-control form-control-sm" placeholder="Función">
+                            </th>
+                            <th>
+                                <input v-model="filtroIP" class="form-control form-control-sm" placeholder="IP">
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -340,7 +444,7 @@ onMounted(() => {
                                 class="page-link" 
                                 @click="page !== '...' ? irAPagina(page as number) : null"
                                 :disabled="page === '...'"
-                                :aria-label="page === '...' ? 'Más páginas' : null">
+                                :aria-label="page === '...' ? 'Más páginas' : undefined">
                                 {{ page }}
                             </button>
                         </li>
