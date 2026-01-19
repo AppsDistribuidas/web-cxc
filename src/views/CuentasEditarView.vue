@@ -3,11 +3,13 @@ import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import api from '@/api/axios';
 import type { Cuenta, EntidadBancaria } from '@/types/BankingTypes';
+import { useSweetAlert } from '@/composables/useSweetAlert';
 
 
 const router = useRouter();
 const route = useRoute();
-const idCuenta = route.params.id as string; 
+const idCuenta = route.params.id as string;
+const { showSuccess } = useSweetAlert();
 
 const form = ref<Partial<Cuenta>>({
     codigo: '',
@@ -32,7 +34,7 @@ onMounted(async () => {
         // 2. Cargar datos de la cuenta a editar
         const resCuenta = await api.get(`/v1/cuentas-bancarias/${idCuenta}`);
         const data = resCuenta.data.data;
-        
+
         // Rellenamos el formulario
         form.value = {
             codigo: data.codigo,
@@ -53,13 +55,12 @@ onMounted(async () => {
 const actualizar = async () => {
     submitting.value = true;
     error.value = null;
-    
+
     try {
         // ENVIAR CAMBIOS (PUT)
         await api.put(`/v1/cuentas-bancarias/${idCuenta}`, form.value);
-        
-        // Feedback nativo rápido
-        alert("Cuenta actualizada correctamente");
+
+        await showSuccess('La cuenta bancaria ha sido actualizada exitosamente');
         router.push('/cuentas');
     } catch (e: any) {
         if (e.response?.status === 422) {
@@ -79,7 +80,7 @@ const actualizar = async () => {
     <div class="container mt-4">
         <div class="row justify-content-center">
             <div class="col-md-8 col-lg-6">
-                
+
                 <div class="d-flex align-items-center mb-3">
                     <button @click="router.push('/cuentas')" class="btn btn-outline-secondary me-3 rounded-circle">
                         <i class="bi bi-arrow-left"></i>
@@ -92,52 +93,33 @@ const actualizar = async () => {
                         <span class="visually-hidden">Cargando...</span>
                     </div>
                 </div>
-                
+
                 <div v-else class="card shadow-sm border-0">
                     <div class="card-body p-4">
-                        
+
                         <div v-if="error" class="alert alert-danger d-flex align-items-center" role="alert">
                             <i class="bi bi-exclamation-triangle-fill me-2"></i>
                             <div style="white-space: pre-line;">{{ error }}</div>
                         </div>
 
                         <form @submit.prevent="actualizar">
-                            
+
                             <div class="mb-3">
                                 <label for="codigo" class="form-label fw-bold">Código</label>
-                                <input 
-                                    id="codigo"
-                                    v-model="form.codigo" 
-                                    type="text" 
-                                    class="form-control" 
-                                    required
-                                    readonly 
-                                    disabled
-                                    title="El código no se debe modificar"
-                                />
+                                <input id="codigo" v-model="form.codigo" type="text" class="form-control" required
+                                    readonly disabled title="El código no se debe modificar" />
                                 <div class="form-text">El código identificador no se puede cambiar.</div>
                             </div>
 
                             <div class="mb-3">
                                 <label for="nombre" class="form-label fw-bold">Nombre de la Cuenta</label>
-                                <input 
-                                    id="nombre"
-                                    v-model="form.nombre_cuenta" 
-                                    type="text" 
-                                    class="form-control" 
-                                    placeholder="Ej: Cuenta Corriente Bco Pichincha"
-                                    required 
-                                />
+                                <input id="nombre" v-model="form.nombre_cuenta" type="text" class="form-control"
+                                    placeholder="Ej: Cuenta Corriente" required />
                             </div>
 
                             <div class="mb-3">
                                 <label for="banco" class="form-label fw-bold">Entidad Bancaria</label>
-                                <select 
-                                    id="banco"
-                                    v-model="form.id_entidad_bancaria" 
-                                    class="form-select"
-                                    required
-                                >
+                                <select id="banco" v-model="form.id_entidad_bancaria" class="form-select" required>
                                     <option value="" disabled>Seleccione un banco...</option>
                                     <option v-for="banco in bancos" :key="banco.id" :value="banco.id">
                                         {{ banco.nombre }}
@@ -147,23 +129,14 @@ const actualizar = async () => {
 
                             <div class="mb-3">
                                 <label for="descripcion" class="form-label fw-bold">Descripción</label>
-                                <textarea 
-                                    id="descripcion"
-                                    v-model="form.descripcion" 
-                                    class="form-control" 
-                                    rows="3"
-                                    placeholder="Detalles adicionales..."
-                                ></textarea>
+                                <textarea id="descripcion" v-model="form.descripcion" class="form-control" rows="3"
+                                    placeholder="Detalles adicionales..."></textarea>
                             </div>
 
                             <div class="mb-4">
                                 <div class="form-check form-switch">
-                                    <input 
-                                        class="form-check-input" 
-                                        type="checkbox" 
-                                        id="estadoSwitch"
-                                        v-model="form.estado"
-                                    >
+                                    <input class="form-check-input" type="checkbox" id="estadoSwitch"
+                                        v-model="form.estado">
                                     <label class="form-check-label" for="estadoSwitch">
                                         {{ form.estado ? 'Cuenta Activa' : 'Cuenta Inactiva' }}
                                     </label>
@@ -173,21 +146,15 @@ const actualizar = async () => {
                             <hr>
 
                             <div class="d-flex justify-content-end gap-2">
-                                <button 
-                                    type="button" 
-                                    @click="router.push('/cuentas')" 
-                                    class="btn btn-secondary"
-                                    :disabled="submitting"
-                                >
+                                <button type="button" @click="router.push('/cuentas')" class="btn btn-secondary"
+                                    :disabled="submitting">
                                     Cancelar
                                 </button>
-                                
-                                <button 
-                                    type="submit" 
-                                    class="btn btn-primary d-flex align-items-center"
-                                    :disabled="submitting"
-                                >
-                                    <span v-if="submitting" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+
+                                <button type="submit" class="btn btn-primary d-flex align-items-center"
+                                    :disabled="submitting">
+                                    <span v-if="submitting" class="spinner-border spinner-border-sm me-2" role="status"
+                                        aria-hidden="true"></span>
                                     {{ submitting ? 'Guardando...' : 'Actualizar Cambios' }}
                                 </button>
                             </div>
