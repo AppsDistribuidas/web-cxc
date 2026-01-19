@@ -63,6 +63,9 @@ const paginationRange = computed(() => {
     }
 
     return rangeWithDots;
+// Computed property for table colspan based on user permissions
+const tableColspan = computed(() => {
+    return can('Administración cuentas bancarias') ? 5 : 4;
 });
 
 const obtenerCuentas = async (page: number = 1) => {
@@ -313,7 +316,7 @@ onMounted(async () => {
                         </tr>
 
                         <tr v-if="cuentas.length === 0">
-                            <td colspan="5" class="text-center py-5 text-muted">
+                            <td :colspan="tableColspan" class="text-center py-5 text-muted">
                                 <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                                 No hay cuentas registradas en el sistema.
                             </td>
