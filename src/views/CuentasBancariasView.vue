@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import api from '@/api/axios';
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuth } from '@/composables/useAuth';
 import { useSweetAlert } from '@/composables/useSweetAlert';
@@ -32,6 +32,11 @@ const filterTipoCuenta = ref('');
 const filterEstado = ref('');
 const filterBanco = ref('');
 const bancos = ref<EntidadBancaria[]>([]);
+
+// Computed property for table colspan based on user permissions
+const tableColspan = computed(() => {
+    return can('Administración cuentas bancarias') ? 5 : 4;
+});
 
 const obtenerCuentas = async (page: number = 1) => {
     loading.value = true;
@@ -281,7 +286,7 @@ onMounted(async () => {
                         </tr>
 
                         <tr v-if="cuentas.length === 0">
-                            <td colspan="5" class="text-center py-5 text-muted">
+                            <td :colspan="tableColspan" class="text-center py-5 text-muted">
                                 <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                                 No hay cuentas registradas en el sistema.
                             </td>
