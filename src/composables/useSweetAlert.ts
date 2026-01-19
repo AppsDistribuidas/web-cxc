@@ -27,7 +27,7 @@ export function useSweetAlert() {
       title,
       text: message,
       confirmButtonText: 'OK',
-      confirmButtonColor: '#ffc107',
+      confirmButtonColor: '#856404',
     })
   }
 
