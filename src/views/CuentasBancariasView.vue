@@ -28,16 +28,18 @@ const sortBy = ref('codigo');
 const sortOrder = ref<'asc' | 'desc'>('asc');
 
 // Filter state
+const filterCodigo = ref('');
 const filterTipoCuenta = ref('');
 const filterEstado = ref('');
 const filterBanco = ref('');
+const filterFecha = ref('');
 const bancos = ref<EntidadBancaria[]>([]);
 
 // Computed property for smart pagination
 const paginationRange = computed(() => {
     const totalPages = lastPage.value;
     const current = currentPage.value;
-    
+
     // Guard clause: handle edge cases where there are no pages
     if (totalPages < 1) {
         return [];
@@ -73,7 +75,7 @@ const paginationRange = computed(() => {
 
 // Computed property for table colspan based on user permissions
 const tableColspan = computed(() => {
-    return can('Administración cuentas bancarias') ? 5 : 4;
+    return can('Administración cuentas bancarias') ? 6 : 5;
 });
 
 const obtenerCuentas = async (page: number = 1) => {
@@ -87,6 +89,9 @@ const obtenerCuentas = async (page: number = 1) => {
         });
 
         // Add filters if they have values
+        if (filterCodigo.value) {
+            params.append('codigo', filterCodigo.value);
+        }
         if (filterTipoCuenta.value) {
             params.append('tipo_cuenta', filterTipoCuenta.value);
         }
@@ -95,6 +100,9 @@ const obtenerCuentas = async (page: number = 1) => {
         }
         if (filterBanco.value) {
             params.append('id_banco', filterBanco.value);
+        }
+        if (filterFecha.value) {
+            params.append('fecha', filterFecha.value);
         }
 
         const response = await api.get(`/v1/cuentas-bancarias?${params}`);
@@ -120,22 +128,22 @@ const obtenerCuentas = async (page: number = 1) => {
 };
 
 const limpiarFiltros = () => {
+    filterCodigo.value = '';
     filterTipoCuenta.value = '';
     filterEstado.value = '';
     filterBanco.value = '';
+    filterFecha.value = '';
     obtenerCuentas(1);
 };
 
-const cambiarOrdenamiento = (campo: string) => {
-    if (campo === sortBy.value) {
-        // Toggle sort order when the same field is selected again
+const toggleSort = (key: string) => {
+    if (sortBy.value === key) {
         sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
     } else {
-        // Change sort field and reset sort order to ascending
-        sortBy.value = campo;
+        sortBy.value = key;
         sortOrder.value = 'asc';
     }
-    obtenerCuentas(1); // Reset to page 1 when sorting changes
+    obtenerCuentas(1);
 };
 
 const irAPagina = (page: number) => {
@@ -202,78 +210,25 @@ onMounted(async () => {
             </button>
         </div>
 
-        <div class="card shadow-sm border-0 mb-3 bg-light">
+        <div class="card shadow-sm border-0 mb-4 bg-light">
             <div class="card-body py-3">
                 <div class="row g-3 align-items-center">
-                    <!-- Filters -->
-                    <div class="col-md-9">
-                        <div class="d-flex gap-2 flex-wrap">
-                            <select v-model="filterTipoCuenta" @change="obtenerCuentas(1)"
-                                class="form-select form-select-sm" style="width: auto;">
-                                <option value="">Todos los tipos</option>
-                                <option value="Cuenta de Ahorros">Cuenta de Ahorros</option>
-                                <option value="Cuenta Corriente">Cuenta Corriente</option>
-                            </select>
-
-                            <select v-model="filterEstado" @change="obtenerCuentas(1)"
-                                class="form-select form-select-sm" style="width: auto;">
-                                <option value="">Todos los estados</option>
-                                <option value="1">Activo</option>
-                                <option value="0">Inactivo</option>
-                            </select>
-
-                            <select v-model="filterBanco" @change="obtenerCuentas(1)" class="form-select form-select-sm"
-                                style="width: auto;">
-                                <option value="">Todos los bancos</option>
-                                <option v-for="banco in bancos" :key="banco.id" :value="banco.id">
-                                    {{ banco.nombre }}
-                                </option>
-                            </select>
-
-                            <button @click="limpiarFiltros" class="btn btn-outline-secondary btn-sm"
-                                title="Limpiar filtros">
-                                <i class="bi bi-x-circle"></i> Limpiar
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="col-md-3 text-end">
+                    <div class="col-md-4">
                         <div class="small text-muted">
                             Mostrando <strong>{{ from }}-{{ to }}</strong> de <strong>{{ total }}</strong>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card shadow-sm border-0 mb-4 bg-light">
-            <div class="card-body py-3">
-                <div class="row g-3 align-items-center">
-                    <div class="col-md-12 text-end">
-                        <div class="d-flex gap-2 justify-content-end">
-                            <!-- Sorting Controls -->
-                            <select v-model="sortBy" @change="cambiarOrdenamiento(sortBy)"
-                                class="form-select form-select-sm" style="width: auto;">
-                                <option value="codigo">Código</option>
-                                <option value="created_at">Fecha de Creación</option>
-                            </select>
-
-                            <button
-                                @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'; obtenerCuentas(currentPage)"
-                                class="btn btn-outline-secondary btn-sm"
-                                :title="sortOrder === 'asc' ? 'Orden Ascendente' : 'Orden Descendente'">
-                                <i :class="sortOrder === 'asc' ? 'bi bi-sort-alpha-down' : 'bi bi-sort-alpha-up'"></i>
-                            </button>
-
-                            <button @click="obtenerCuentas(currentPage)" class="btn btn-outline-secondary btn-sm"
-                                title="Actualizar">
-                                <i class="bi bi-arrow-clockwise"></i>
-                            </button>
-                        </div>
+                    <div class="col-md-8 text-end">
+                        <button @click="obtenerCuentas(currentPage)" class="btn btn-outline-secondary btn-sm"
+                            title="Actualizar">
+                            <i class="bi bi-arrow-clockwise"></i> Refrescar
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
+
+
 
         <div v-if="loading" class="text-center py-5">
             <div class="spinner-border text-primary" role="status"></div>
@@ -292,10 +247,56 @@ onMounted(async () => {
                             <th v-if="can('Administración cuentas bancarias')" class="text-center ps-3">
                                 Acciones
                             </th>
-                            <th class="ps-4">Código</th>
-                            <th>Nombre</th>
-                            <th>Banco</th>
-                            <th class="text-center">Estado</th>
+                            <th @click="toggleSort('codigo')" class="ps-4 fw-bold" style="cursor:pointer">
+                                Código <small v-if="sortBy === 'codigo'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</small>
+                            </th>
+                            <th class="fw-bold">Nombre</th>
+                            <th class="fw-bold">Banco</th>
+                            <th @click="toggleSort('created_at')" class="text-center fw-bold" style="cursor:pointer">
+                                Fecha Creación <small v-if="sortBy === 'created_at'">{{ sortOrder === 'asc' ? '▲' : '▼'
+                                    }}</small>
+                            </th>
+                            <th class="text-center fw-bold">Estado</th>
+                        </tr>
+                        <!-- Filter row -->
+                        <tr class="bg-white">
+                            <th class="text-center" v-if="can('Administración cuentas bancarias')">
+                                <button @click="limpiarFiltros" class="btn btn-sm btn-outline-secondary"
+                                    title="Limpiar filtros">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            </th>
+                            <th><input v-model="filterCodigo" @input="obtenerCuentas(1)"
+                                    class="form-control form-control-sm" placeholder="Código"></th>
+                            <th>
+                                <select v-model="filterTipoCuenta" @change="obtenerCuentas(1)"
+                                    class="form-select form-select-sm">
+                                    <option value="">Todos</option>
+                                    <option value="Cuenta de Ahorros">Ahorros</option>
+                                    <option value="Cuenta Corriente">Corriente</option>
+                                </select>
+                            </th>
+                            <th>
+                                <select v-model="filterBanco" @change="obtenerCuentas(1)"
+                                    class="form-select form-select-sm">
+                                    <option value="">Todos</option>
+                                    <option v-for="banco in bancos" :key="banco.id" :value="banco.id">
+                                        {{ banco.nombre }}
+                                    </option>
+                                </select>
+                            </th>
+                            <th>
+                                <input type="date" v-model="filterFecha" @change="obtenerCuentas(1)"
+                                    class="form-control form-control-sm">
+                            </th>
+                            <th class="text-center">
+                                <select v-model="filterEstado" @change="obtenerCuentas(1)"
+                                    class="form-select form-select-sm">
+                                    <option value="">Todos</option>
+                                    <option value="1">Activo</option>
+                                    <option value="0">Inactivo</option>
+                                </select>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -316,6 +317,8 @@ onMounted(async () => {
                             <td class="ps-4 fw-bold text-primary">{{ cuenta.codigo }}</td>
                             <td class="fw-medium">{{ cuenta.nombre_cuenta }}</td>
                             <td>{{ cuenta.entidad_bancaria?.nombre || 'N/A' }}</td>
+                            <td class="text-center">{{ cuenta.created_at ? new
+                                Date(cuenta.created_at).toLocaleDateString('es-EC') : 'N/A' }}</td>
                             <td class="text-center">
                                 <span :class="`badge rounded-pill ${cuenta.estado ? 'bg-success' : 'bg-danger'}`">
                                     {{ cuenta.estado ? 'Activo' : 'Inactivo' }}
@@ -324,7 +327,7 @@ onMounted(async () => {
                         </tr>
 
                         <tr v-if="cuentas.length === 0">
-                            <td :colspan="tableColspan" class="text-center py-5 text-muted">
+                            <td :colspan="tableColspan + 1" class="text-center py-5 text-muted">
                                 <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                                 No hay cuentas registradas en el sistema.
                             </td>
@@ -373,12 +376,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.table th {
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.85rem;
-}
-
 .table-hover tbody tr:hover {
     background-color: rgba(0, 0, 0, .02);
 }
