@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import api from '@/api/axios';
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuth } from '@/composables/useAuth';
 import { useSweetAlert } from '@/composables/useSweetAlert';
@@ -32,6 +32,38 @@ const filterTipoCuenta = ref('');
 const filterEstado = ref('');
 const filterBanco = ref('');
 const bancos = ref<EntidadBancaria[]>([]);
+
+// Computed property for smart pagination
+const paginationRange = computed(() => {
+    const total = lastPage.value;
+    const current = currentPage.value;
+    const delta = 2; // Number of pages to show around current page
+    const range: number[] = [];
+    const rangeWithDots: (number | string)[] = [];
+    let l: number | undefined;
+
+    // Always show first page, last page, and pages around current page
+    for (let i = 1; i <= total; i++) {
+        if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+            range.push(i);
+        }
+    }
+
+    // Add ellipsis where there are gaps
+    for (const i of range) {
+        if (l !== undefined) {
+            if (i - l === 2) {
+                rangeWithDots.push(l + 1);
+            } else if (i - l !== 1) {
+                rangeWithDots.push('...');
+            }
+        }
+        rangeWithDots.push(i);
+        l = i;
+    }
+
+    return rangeWithDots;
+});
 
 const obtenerCuentas = async (page: number = 1) => {
     loading.value = true;
@@ -307,11 +339,12 @@ onMounted(async () => {
                                 </button>
                             </li>
 
-                            <li v-for="page in lastPage" :key="page" class="page-item"
-                                :class="{ active: page === currentPage }">
-                                <button class="page-link" @click="irAPagina(page)">
+                            <li v-for="(page, index) in paginationRange" :key="index" class="page-item"
+                                :class="{ active: page === currentPage, disabled: page === '...' }">
+                                <button v-if="page !== '...'" class="page-link" @click="irAPagina(page as number)">
                                     {{ page }}
                                 </button>
+                                <span v-else class="page-link">{{ page }}</span>
                             </li>
 
                             <li class="page-item" :class="{ disabled: currentPage === lastPage }">
