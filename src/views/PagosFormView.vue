@@ -2,8 +2,11 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import api from '@/api/axios';
+import { useSweetAlert } from '@/composables/useSweetAlert';
 import type { Cuenta } from '@/types/BankingTypes';
 import type { PagoPayload, DetallePago } from '@/types/PaymentTypes';
+
+const { showSuccess, showError, showWarning } = useSweetAlert();
 
 const router = useRouter();
 const route = useRoute();
@@ -98,6 +101,17 @@ const formatNumeroFactura = (s: string | null | undefined) => {
 };
 
 // --- LÓGICA DE DETALLES ---
+
+// Computed: Facturas disponibles que NO están ya en el detalle
+const facturasParaSeleccionar = computed(() => {
+    const facturasEnDetalle = new Set(
+        form.value.detalles.map(d => unformatNumeroFactura(d.numero_factura))
+    );
+    return facturasDisponibles.value.filter(
+        f => !facturasEnDetalle.has(unformatNumeroFactura(f.numero_factura))
+    );
+});
+
 const facturaSeleccionada = computed(() => {
     return facturasDisponibles.value.find(f => unformatNumeroFactura(f.numero_factura) === unformatNumeroFactura(nuevoDetalle.value.numero_factura));
 });
@@ -184,7 +198,7 @@ onMounted(async () => {
             // VALIDACIÓN CRÍTICA: Solo permitir editar si está activo y no procesado
             if (fechaImpresion.value || !data.estado) {
                 const mensaje = fechaImpresion.value ? 'El pago ya fue procesado y no se puede editar.' : 'El pago está inactivo y no se puede editar.';
-                alert(mensaje);
+                await showWarning(mensaje);
                 router.push('/pagos');
                 return;
             }
@@ -205,7 +219,10 @@ onMounted(async () => {
                     return {
                         // Guardamos internamente solo los dígitos
                         numero_factura: unformatNumeroFactura(d.numero_factura),
-                        monto_pagar: Number(montoFromBackend) || 0
+                        monto_pagar: Number(montoFromBackend) || 0,
+                        // Guardamos saldo_anterior del backend para mostrarlo en la UI
+                        saldo_anterior: d.saldo_anterior != null ? Number(d.saldo_anterior) : undefined,
+                        saldo_nuevo: d.saldo_nuevo != null ? Number(d.saldo_nuevo) : undefined
                     };
                 })
             };
@@ -230,36 +247,39 @@ onMounted(async () => {
     }
 });
 
-const agregarDetalle = () => {
+const agregarDetalle = async () => {
     if (!nuevoDetalle.value.numero_factura || nuevoDetalle.value.monto_pagar <= 0) {
-        alert("Ingrese un número de factura y un monto válido.");
+        await showWarning("Ingrese un número de factura y un monto válido.");
         return;
     }
 
     // Validamos en base a los dígitos reales (sin guiones)
     const raw = unformatNumeroFactura(nuevoDetalle.value.numero_factura);
     if (raw.length !== 15) {
-        alert("El número de factura debe tener exactamente 15 dígitos.");
+        await showWarning("El número de factura debe tener exactamente 15 dígitos.");
         return;
     }
 
     if (facturaSeleccionada.value && nuevoDetalle.value.monto_pagar > maximoPagable.value) {
-        alert(`El monto no puede ser mayor al saldo pendiente ($ ${maximoPagable.value.toFixed(2)})`);
+        await showWarning(`El monto no puede ser mayor al saldo pendiente ($ ${maximoPagable.value.toFixed(2)})`);
         return;
     }
 
     const existe = form.value.detalles.some(d => unformatNumeroFactura(d.numero_factura) === raw);
     if (existe) {
-        alert("Esta factura ya está agregada en la lista.");
+        await showWarning("Esta factura ya está agregada en la lista.");
         return;
     }
 
     // Guardamos internamente solo los dígitos (sin guiones)
     form.value.detalles.push({ numero_factura: raw, monto_pagar: nuevoDetalle.value.monto_pagar });
+
+    // La factura desaparece del dropdown automáticamente gracias al computed facturasParaSeleccionar
     nuevoDetalle.value = { numero_factura: '', monto_pagar: 0 };
 };
 
 const eliminarDetalle = (index: number) => {
+    // La factura reaparece automáticamente en el dropdown gracias al computed facturasParaSeleccionar
     form.value.detalles.splice(index, 1);
 };
 
@@ -269,7 +289,7 @@ const totalPago = computed(() => {
 
 const guardar = async () => {
     if (form.value.detalles.length === 0) {
-        alert("Debe agregar al menos un detalle de pago.");
+        await showWarning("Debe agregar al menos un detalle de pago.");
         return;
     }
 
@@ -285,10 +305,10 @@ const guardar = async () => {
 
         if (isEditing.value) {
             await api.put(`/v1/pagos/${route.params.numero_pago}`, payload);
-            alert("Pago actualizado correctamente.");
+            await showSuccess("Pago actualizado correctamente.");
         } else {
             await api.post('/v1/pagos', payload);
-            alert("Pago registrado correctamente.");
+            await showSuccess("Pago registrado correctamente.");
         }
         router.push('/pagos');
     } catch (e: any) {
@@ -381,16 +401,21 @@ const guardar = async () => {
                                                 <select v-model="nuevoDetalle.numero_factura"
                                                     class="form-select form-select-sm" @change="alSeleccionarFactura">
                                                     <option value="" disabled>Seleccione factura...</option>
-                                                    <option v-for="factura in facturasDisponibles"
+                                                    <option v-for="factura in facturasParaSeleccionar"
                                                         :key="factura.numero_factura"
                                                         :value="unformatNumeroFactura(factura.numero_factura)">
                                                         {{ formatNumeroFactura(factura.numero_factura) }}
                                                     </option>
                                                 </select>
+                                                <div v-if="form.cedula_cliente && facturasParaSeleccionar.length === 0 && facturasDisponibles.length === 0"
+                                                    class="form-text text-warning mt-1">
+                                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                                    Este cliente no tiene facturas a crédito pendientes.
+                                                </div>
                                                 <div v-if="facturaSeleccionada" class="form-text mt-1 text-primary">
                                                     <small>Deuda: <strong>$ {{
                                                         Number(facturaSeleccionada.total).toFixed(2)
-                                                    }}</strong></small>
+                                                            }}</strong></small>
                                                 </div>
                                             </div>
 
@@ -442,6 +467,9 @@ const guardar = async () => {
                                                             Number(getFacturaInfo(item.numero_factura).saldo_pendiente).toFixed(2)
                                                         }}
                                                     </span>
+                                                    <span v-else-if="item.saldo_anterior != null">
+                                                        $ {{ Number(item.saldo_anterior).toFixed(2) }}
+                                                    </span>
                                                     <span v-else class="small text-muted">N/A</span>
                                                 </td>
 
@@ -454,6 +482,13 @@ const guardar = async () => {
                                                         $ {{
                                                             (Number(getFacturaInfo(item.numero_factura).saldo_pendiente) -
                                                                 item.monto_pagar).toFixed(2) }}
+                                                    </span>
+                                                    <span v-else-if="item.saldo_nuevo != null">
+                                                        $ {{ Number(item.saldo_nuevo).toFixed(2) }}
+                                                    </span>
+                                                    <span v-else-if="item.saldo_anterior != null">
+                                                        $ {{ (Number(item.saldo_anterior) - item.monto_pagar).toFixed(2)
+                                                        }}
                                                     </span>
                                                     <span v-else>-</span>
                                                 </td>
