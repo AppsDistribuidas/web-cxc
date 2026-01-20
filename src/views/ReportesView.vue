@@ -284,7 +284,7 @@ onMounted(async () => {
                                 placeholder="Todos los clientes...">
                             <datalist id="dlPagos">
                                 <option v-for="c in filteredClientesPagos" :key="c.cedula" :value="c.cedula">{{ c.nombre
-                                    }}</option>
+                                }}</option>
                             </datalist>
                         </div>
                         <div class="col-md-3">
@@ -353,7 +353,7 @@ onMounted(async () => {
                                         <td class="text-end text-muted">${{ Number(d.total_factura || 0).toFixed(2) }}
                                         </td>
                                         <td class="text-end fw-bold text-success">${{ Number(d.monto_pagado).toFixed(2)
-                                        }}</td>
+                                            }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -456,6 +456,11 @@ onMounted(async () => {
                                     Number(estadoCuentaData.resumen.total_facturado).toFixed(2) }}</span>
                             </div>
                             <div class="mb-2">
+                                <span class="text-primary">Total Cancelado:</span>
+                                <span class="fw-bold text-primary ms-2">$ {{
+                                    Number(estadoCuentaData.resumen.total_cancelado || 0).toFixed(2) }}</span>
+                            </div>
+                            <div class="mb-2">
                                 <span class="text-warning">Pagos Pendientes:</span>
                                 <span class="fw-bold text-warning ms-2">$ {{
                                     Number(estadoCuentaData.resumen.total_pagos_pendientes || 0).toFixed(2) }}</span>
@@ -479,7 +484,7 @@ onMounted(async () => {
                             </div>
                             <div>
                                 <span class="badge bg-secondary me-2">Total: ${{ Number(factura.total).toFixed(2)
-                                }}</span>
+                                    }}</span>
                                 <span v-if="Number(factura.saldo_pendiente) > 0" class="badge bg-warning text-dark">
                                     Saldo: ${{ Number(factura.saldo_pendiente).toFixed(2) }}
                                 </span>
