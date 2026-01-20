@@ -1,90 +1,135 @@
 <script setup lang="ts">
 import api from '@/api/axios';
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuth } from '@/composables/useAuth';
+import { useSweetAlert } from '@/composables/useSweetAlert';
 import type { Pago } from '@/types/PaymentTypes';
 
+const { showSuccess, showError, showConfirm } = useSweetAlert();
 const router = useRouter();
+const { can } = useAuth();
 
+// Data
 const pagos = ref<Pago[]>([]);
-const allPagos = ref<Pago[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 
-// Filtros por columna
-const filtroCedula = ref('');
-const filtroNumeroPago = ref('');
-const filtroCuenta = ref('');
-const filtroEstado = ref<'all' | 'activo' | 'inactivo' | 'procesado'>('all');
-const filtroFecha = ref(''); // fecha exacta
-const filtroMonto = ref(''); // monto exacto (string)
+// Pagination state
+const currentPage = ref(1);
+const lastPage = ref(1);
+const total = ref(0);
+const perPage = ref(10);
+const from = ref(0);
+const to = ref(0);
 
-// Ordenamiento
-// Por defecto ordenamos por fecha (últimos primero)
-const sortBy = ref<string | null>('fecha');
-const sortDir = ref<'asc' | 'desc'>('desc');
+// Sorting state
+const sortBy = ref('fecha');
+const sortOrder = ref<'asc' | 'desc'>('desc');
 
-const toggleSort = (key: string) => {
-    if (sortBy.value === key) {
-        sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
-    } else {
-        sortBy.value = key;
-        sortDir.value = 'asc';
+// Filter state
+const filterNumeroPago = ref('');
+const filterCedula = ref('');
+const filterCuenta = ref('');
+const filterEstado = ref('');  // '' = default (exclude inactive)
+const filterFecha = ref('');   // fecha exacta
+const filterMonto = ref('');   // monto exacto
+
+// Computed property for smart pagination
+const paginationRange = computed(() => {
+    const totalPages = lastPage.value;
+    const current = currentPage.value;
+
+    if (totalPages < 1) return [];
+
+    const delta = 2;
+    const range: number[] = [];
+    const rangeWithDots: (number | string)[] = [];
+    let l: number | undefined;
+
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= current - delta && i <= current + delta)) {
+            range.push(i);
+        }
     }
-    // Reaplicar filtro+orden
-    aplicarFiltro();
-};
 
-const limpiarFiltros = () => {
-    filtroNumeroPago.value = '';
-    filtroCedula.value = '';
-    filtroCuenta.value = '';
-    filtroEstado.value = 'all';
-    filtroFecha.value = '';
-    filtroMonto.value = '';
-    aplicarFiltro();
-};
+    for (const i of range) {
+        if (l !== undefined) {
+            if (i - l === 2) {
+                rangeWithDots.push(l + 1);
+            } else if (i - l !== 1) {
+                rangeWithDots.push('...');
+            }
+        }
+        rangeWithDots.push(i);
+        l = i;
+    }
+
+    return rangeWithDots;
+});
 
 const formatearFecha = (fechaString: string) => {
     if (!fechaString) return 'N/A';
-    
     try {
-        // 1. Limpiamos la fecha por si viene con hora o formato ISO
-        // Nos quedamos solo con la parte YYYY-MM-DD
         const soloFecha = fechaString.split('T')[0]?.split(' ')[0] ?? '';
-        
-        // 2. Creamos la fecha forzando la hora local para evitar desfases
         const fecha = new Date(soloFecha + 'T00:00:00');
-        
-        // 3. Validamos que sea una fecha válida antes de formatear
-        if (isNaN(fecha.getTime())) {
-            return fechaString; // Si falla, devolvemos el original
-        }
-
+        if (isNaN(fecha.getTime())) return fechaString;
         return new Intl.DateTimeFormat('es-EC', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
+            day: '2-digit', month: '2-digit', year: 'numeric'
         }).format(fecha);
     } catch (e) {
-        return fechaString; // Fallback de seguridad
+        return fechaString;
     }
 };
 
-const obtenerPagos = async () => {
+const obtenerPagos = async (page: number = 1) => {
     loading.value = true;
     error.value = null;
     try {
-        // Traemos todos los pagos y almacenamos en allPagos para permitir filtrado local por subcadenas
-        const response = await api.get('/v1/pagos');
-        const respData = response.data.data || [];
-        // Normalizamos monto_total por si el backend no lo devuelve; sumamos detalles si es necesario
-        allPagos.value = respData.map((p: any) => {
-            const fallbackTotal = (p.detalles || []).reduce((acc: number, d: any) => acc + (Number(d.monto_pagado ?? d.monto_pagar ?? d.monto) || 0), 0);
+        const params = new URLSearchParams({
+            page: page.toString(),
+            sort_by: sortBy.value,
+            sort_order: sortOrder.value
+        });
+
+        // Add filters
+        if (filterNumeroPago.value) params.append('numero_pago', filterNumeroPago.value);
+        if (filterCedula.value) params.append('cedula_cliente', filterCedula.value);
+        if (filterCuenta.value) params.append('codigo_cuenta', filterCuenta.value);
+        if (filterEstado.value !== '') params.append('estado', filterEstado.value);
+        if (filterFecha.value) params.append('fecha', filterFecha.value);
+        // Monto se filtra en cliente (no está en cabecera del backend)
+
+        const response = await api.get(`/v1/pagos?${params}`);
+        let respData = response.data.data || [];
+
+        // Normalizar monto_total
+        respData = respData.map((p: any) => {
+            const fallbackTotal = (p.detalles || []).reduce((acc: number, d: any) =>
+                acc + (Number(d.monto_pagado ?? d.monto_pagar ?? d.monto) || 0), 0);
             return { ...p, monto_total: Number(p.monto_total) || fallbackTotal };
         });
-        aplicarFiltro();
+
+        // Filtro de monto en cliente (no está en backend)
+        if (filterMonto.value) {
+            const montoNum = Number(filterMonto.value);
+            if (!isNaN(montoNum)) {
+                respData = respData.filter((p: any) => Number(p.monto_total || 0) === montoNum);
+            }
+        }
+
+        pagos.value = respData;
+
+        // Update pagination state
+        const pagination = response.data.pagination;
+        if (pagination) {
+            currentPage.value = pagination.current_page;
+            lastPage.value = pagination.last_page;
+            total.value = pagination.total;
+            perPage.value = pagination.per_page;
+            from.value = pagination.from || 0;
+            to.value = pagination.to || 0;
+        }
     } catch (e: any) {
         error.value = "Error al cargar los pagos. Intente nuevamente.";
         console.error(e);
@@ -93,89 +138,55 @@ const obtenerPagos = async () => {
     }
 };
 
-const aplicarFiltro = () => {
-    let resultado = allPagos.value.slice();
-
-    // Filtro por número de pago (parcial)
-    if (filtroNumeroPago.value.trim()) {
-        const q = filtroNumeroPago.value.trim().toLowerCase();
-        resultado = resultado.filter(p => (p.numero_pago ?? '').toLowerCase().includes(q));
-    }
-
-    // Filtro por cédula (parcial)
-    if (filtroCedula.value.trim()) {
-        const q = filtroCedula.value.trim().toLowerCase();
-        resultado = resultado.filter(p => (p.cedula_cliente ?? '').toLowerCase().includes(q));
-    }
-
-    // Filtro por cuenta
-    if (filtroCuenta.value.trim()) {
-        const q = filtroCuenta.value.trim().toLowerCase();
-        resultado = resultado.filter(p => (p.codigo_cuenta ?? '').toLowerCase().includes(q));
-    }
-
-    // Filtro por estado
-    if (filtroEstado.value === 'all') {
-        // Por defecto: mostrar solo activos o procesados (excluir inactivos)
-        resultado = resultado.filter(p => p.estado === true || !!p.fecha_impresion);
+const toggleSort = (key: string) => {
+    if (sortBy.value === key) {
+        sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
     } else {
-        if (filtroEstado.value === 'activo') {
-            // Activos que no han sido procesados
-            resultado = resultado.filter(p => p.estado === true && !p.fecha_impresion);
-        } else if (filtroEstado.value === 'inactivo') {
-            resultado = resultado.filter(p => p.estado === false);
-        } else if (filtroEstado.value === 'procesado') {
-            resultado = resultado.filter(p => !!p.fecha_impresion);
-        }
+        sortBy.value = key;
+        sortOrder.value = 'asc';
     }
+    obtenerPagos(1);
+};
 
-    // Filtro por fecha exacta (YYYY-MM-DD)
-    if (filtroFecha.value) {
-        const qDate = filtroFecha.value;
-        resultado = resultado.filter(p => ((p.fecha || '').toString().split('T')[0] === qDate));
+const limpiarFiltros = () => {
+    filterNumeroPago.value = '';
+    filterCedula.value = '';
+    filterCuenta.value = '';
+    filterEstado.value = '';
+    filterFecha.value = '';
+    filterMonto.value = '';
+    obtenerPagos(1);
+};
+
+const irAPagina = (page: number) => {
+    if (page >= 1 && page <= lastPage.value) {
+        obtenerPagos(page);
     }
-
-    // Filtro por monto exacto
-    if (filtroMonto.value) {
-        const qNum = Number(filtroMonto.value);
-        if (!isNaN(qNum)) {
-            resultado = resultado.filter(p => Number(p.monto_total || 0) === qNum);
-        }
-    }
-
-    // Ordenamiento
-    if (sortBy.value) {
-        resultado.sort((a: any, b: any) => {
-            const aVal = (a[sortBy.value!] ?? '').toString();
-            const bVal = (b[sortBy.value!] ?? '').toString();
-            if (!isNaN(Number(aVal)) && !isNaN(Number(bVal))) {
-                return sortDir.value === 'asc' ? Number(aVal) - Number(bVal) : Number(bVal) - Number(aVal);
-            }
-            return sortDir.value === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-        });
-    }
-
-    pagos.value = resultado;
 };
 
 const anularPago = async (pago: any) => {
-    if (!confirm(`¿Está seguro de anular el pago ${pago.numero_pago}? Esta acción no se puede deshacer.`)) {
-        return;
-    }
+    const confirmed = await showConfirm(
+        `¿Está seguro de anular el pago ${pago.numero_pago}? Esta acción no se puede deshacer.`,
+        'Confirmar anulación'
+    );
+    if (!confirmed) return;
 
     try {
         await api.delete(`/v1/pagos/${pago.numero_pago}`);
-        alert("Pago anulado correctamente.");
-        obtenerPagos(); // Recargar la lista para que desaparezca
+        await showSuccess("Pago anulado correctamente.");
+        obtenerPagos(currentPage.value);
     } catch (e: any) {
         const mensaje = e.response?.data?.message || "Error al anular el pago.";
-        alert(mensaje);
+        await showError(mensaje);
     }
 };
 
 const imprimirComprobante = async (numeroPago: string) => {
-    // Pedimos confirmación al usuario antes de descargar/imprimir
-    if (!confirm(`¿Esta seguro de imprimir el pago? Esta acción no se puede deshacer.`)) return;
+    const confirmed = await showConfirm(
+        '¿Esta seguro de imprimir el pago? Esta acción no se puede deshacer.',
+        'Confirmar impresión'
+    );
+    if (!confirmed) return;
 
     try {
         const response = await api.get(`/v1/pagos/${numeroPago}/pdf`, { responseType: 'blob' });
@@ -185,24 +196,18 @@ const imprimirComprobante = async (numeroPago: string) => {
         link.setAttribute('download', `Comprobante-${numeroPago}.pdf`);
         document.body.appendChild(link);
         link.click();
-        obtenerPagos();
+        obtenerPagos(currentPage.value);
     } catch (e) {
-        alert("Error al descargar el comprobante.");
+        await showError("Error al descargar el comprobante.");
     }
 };
 
-let timeout: number;
-watch([
-    filtroNumeroPago,
-    filtroCedula,
-    filtroCuenta,
-    filtroEstado,
-    filtroFecha,
-    filtroMonto
-], () => {
+// Debounce filters
+let timeout: ReturnType<typeof setTimeout>;
+watch([filterNumeroPago, filterCedula, filterCuenta, filterEstado, filterFecha, filterMonto], () => {
     clearTimeout(timeout);
     timeout = setTimeout(() => {
-        aplicarFiltro();
+        obtenerPagos(1);
     }, 300);
 });
 
@@ -219,21 +224,23 @@ onMounted(() => {
                 <p class="text-muted small mb-0">Registro y control de recaudación de clientes</p>
             </div>
 
-            <button 
-                    @click="router.push('/pagos/crear')" 
-                    class="btn btn-primary shadow-sm">
-                <i class="bi"></i>Nuevo Pago
+            <button @click="router.push('/pagos/crear')" class="btn btn-primary shadow-sm">
+                <i class="bi bi-plus-lg"></i> Nuevo Pago
             </button>
         </div>
 
+        <!-- Info bar -->
         <div class="card shadow-sm border-0 mb-4 bg-light">
             <div class="card-body py-3">
                 <div class="row g-3 align-items-center">
                     <div class="col-md-4">
-                        <div class="small text-muted">Registros: <strong>{{ pagos.length }}</strong></div>
+                        <div class="small text-muted">
+                            Mostrando <strong>{{ from }}-{{ to }}</strong> de <strong>{{ total }}</strong>
+                        </div>
                     </div>
                     <div class="col-md-8 text-end">
-                        <button @click="obtenerPagos" class="btn btn-outline-secondary btn-sm" title="Actualizar">
+                        <button @click="obtenerPagos(currentPage)" class="btn btn-outline-secondary btn-sm"
+                            title="Actualizar">
                             <i class="bi bi-arrow-clockwise"></i> Refrescar
                         </button>
                     </div>
@@ -241,47 +248,71 @@ onMounted(() => {
             </div>
         </div>
 
+        <!-- Loading -->
         <div v-if="loading" class="text-center py-5">
             <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted">Cargando registros...</p>
+            <p class="mt-2 text-muted">Cargando pagos...</p>
         </div>
 
+        <!-- Error -->
         <div v-else-if="error" class="alert alert-danger shadow-sm">
             <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ error }}
         </div>
 
+        <!-- Table -->
         <div v-else class="card shadow-sm border-0 overflow-hidden">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light text-secondary">
                         <tr>
-                            <th class="ps-3 text-center">Acciones</th>
-                            <th @click="toggleSort('numero_pago')" class="ps-4" style="cursor:pointer">No. Pago <small v-if="sortBy==='numero_pago'">{{ sortDir==='asc' ? '▲' : '▼' }}</small></th>
-                            <th @click="toggleSort('cedula_cliente')" style="cursor:pointer">Cliente <small v-if="sortBy==='cedula_cliente'">{{ sortDir==='asc' ? '▲' : '▼' }}</small></th>
-                            <th class="text-center" @click="toggleSort('codigo_cuenta')" style="cursor:pointer">Cuenta Destino <small v-if="sortBy==='codigo_cuenta'">{{ sortDir==='asc' ? '▲' : '▼' }}</small></th>
-                            <th @click="toggleSort('fecha')" style="cursor:pointer">Fecha <small v-if="sortBy==='fecha'">{{ sortDir==='asc' ? '▲' : '▼' }}</small></th>
-                            <th class="text-end" @click="toggleSort('monto_total')" style="cursor:pointer">Monto Total <small v-if="sortBy==='monto_total'">{{ sortDir==='asc' ? '▲' : '▼' }}</small></th>
-                            <th class="text-center">Estado</th>
+                            <th class="text-center ps-3">Acciones</th>
+                            <th @click="toggleSort('numero_pago')" class="ps-4 fw-bold" style="cursor:pointer">
+                                No. Pago <small v-if="sortBy === 'numero_pago'">{{ sortOrder === 'asc' ? '▲' : '▼'
+                                }}</small>
+                            </th>
+                            <th @click="toggleSort('cedula_cliente')" class="fw-bold" style="cursor:pointer">
+                                Cliente <small v-if="sortBy === 'cedula_cliente'">{{ sortOrder === 'asc' ? '▲' : '▼'
+                                }}</small>
+                            </th>
+                            <th class="text-center fw-bold">Cuenta</th>
+                            <th @click="toggleSort('fecha')" class="fw-bold" style="cursor:pointer">
+                                Fecha <small v-if="sortBy === 'fecha'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</small>
+                            </th>
+                            <th class="text-end fw-bold">Monto</th>
+                            <th class="text-center fw-bold">Estado</th>
                         </tr>
                         <!-- Filter row -->
                         <tr class="bg-white">
                             <th class="text-center">
-                                <button @click="limpiarFiltros" class="btn btn-sm btn-outline-secondary" title="Limpiar filtros"><i class="bi bi-x-circle"></i></button>
+                                <button @click="limpiarFiltros" class="btn btn-sm btn-outline-secondary"
+                                    title="Limpiar filtros">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
                             </th>
-                            <th><input v-model="filtroNumeroPago" class="form-control form-control-sm" placeholder="# Pago"></th>
-                            <th><input v-model="filtroCedula" class="form-control form-control-sm" placeholder="Cédula"></th>
-                            <th><input v-model="filtroCuenta" class="form-control form-control-sm" placeholder="Cuenta"></th>
                             <th>
-                                <input type="date" v-model="filtroFecha" class="form-control form-control-sm">
+                                <input v-model="filterNumeroPago" class="form-control form-control-sm"
+                                    placeholder="No. Pago">
                             </th>
-                            <th class="text-end">
-                                <input v-model="filtroMonto" class="form-control form-control-sm" placeholder="Monto exacto">
+                            <th>
+                                <input v-model="filterCedula" class="form-control form-control-sm" placeholder="Cédula">
+                            </th>
+                            <th>
+                                <input v-model="filterCuenta" class="form-control form-control-sm" placeholder="Cuenta">
+                            </th>
+                            <th>
+                                <input type="date" v-model="filterFecha" class="form-control form-control-sm"
+                                    title="Fecha exacta">
+                            </th>
+                            <th>
+                                <input type="number" v-model="filterMonto" class="form-control form-control-sm"
+                                    placeholder="Monto" step="0.01">
                             </th>
                             <th class="text-center">
-                                <select v-model="filtroEstado" class="form-select form-select-sm">
-                                    <option value="all">Todos</option>
-                                    <option value="activo">Activo</option>
+                                <select v-model="filterEstado" class="form-select form-select-sm">
+                                    <option value="">Por defecto</option>
+                                    <option value="todos">Todos</option>
                                     <option value="procesado">Procesado</option>
+                                    <option value="pendiente">Pendiente</option>
                                     <option value="inactivo">Inactivo</option>
                                 </select>
                             </th>
@@ -289,29 +320,21 @@ onMounted(() => {
                     </thead>
                     <tbody>
                         <tr v-for="pago in pagos" :key="pago.numero_pago">
-                            <td class="text-center">
+                            <td class="text-center ps-3">
                                 <div class="btn-group">
-                                    <button 
-                                        v-if="!pago.fecha_impresion && pago.estado"
+                                    <button v-if="!pago.fecha_impresion && pago.estado"
                                         @click="router.push(`/pagos/${pago.numero_pago}/editar`)"
-                                        class="btn btn-sm btn-outline-primary"
-                                        title="Editar">
+                                        class="btn btn-sm btn-outline-primary" title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    
-                                    <button 
-                                        @click="imprimirComprobante(pago.numero_pago)"
-                                        class="btn btn-sm btn-outline-secondary"
-                                        title="Imprimir Comprobante">
+
+                                    <button v-if="pago.estado" @click="imprimirComprobante(pago.numero_pago)"
+                                        class="btn btn-sm btn-outline-secondary" title="Imprimir Comprobante">
                                         <i class="bi bi-printer"></i>
                                     </button>
 
-                                    <button 
-                                        v-if="!pago.fecha_impresion && pago.estado" 
-                                        @click="anularPago(pago)" 
-                                        class="btn btn-sm btn-outline-danger" 
-                                        title="Anular"
-                                    >
+                                    <button v-if="!pago.fecha_impresion && pago.estado" @click="anularPago(pago)"
+                                        class="btn btn-sm btn-outline-danger" title="Anular">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </div>
@@ -327,14 +350,13 @@ onMounted(() => {
                                     {{ pago.codigo_cuenta }}
                                 </span>
                             </td>
-                            
                             <td>{{ formatearFecha(pago.fecha) }}</td>
-
                             <td class="text-end fw-bold">
                                 ${{ Number(pago.monto_total || 0).toFixed(2) }}
                             </td>
                             <td class="text-center">
-                                <span :class="`badge rounded-pill ${pago.fecha_impresion ? 'bg-success' : (pago.estado ? 'bg-warning text-dark' : 'bg-danger')}`">
+                                <span
+                                    :class="`badge rounded-pill ${pago.fecha_impresion ? 'bg-success' : (pago.estado ? 'bg-warning text-dark' : 'bg-danger')}`">
                                     {{ pago.fecha_impresion ? 'Procesado' : (pago.estado ? 'Activo' : 'Inactivo') }}
                                 </span>
                             </td>
@@ -349,5 +371,47 @@ onMounted(() => {
                 </table>
             </div>
         </div>
+
+        <!-- Pagination Controls -->
+        <div v-if="!loading && !error && total > perPage" class="card shadow-sm border-0 mt-3">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="small text-muted">
+                        Página {{ currentPage }} de {{ lastPage }}
+                    </div>
+                    <nav>
+                        <ul class="pagination mb-0">
+                            <li class="page-item" :class="{ disabled: currentPage === 1 }">
+                                <button class="page-link" @click="irAPagina(currentPage - 1)"
+                                    :disabled="currentPage === 1">
+                                    <i class="bi bi-chevron-left"></i> Anterior
+                                </button>
+                            </li>
+
+                            <li v-for="(page, index) in paginationRange" :key="index" class="page-item"
+                                :class="{ active: page === currentPage, disabled: page === '...' }">
+                                <button v-if="page !== '...'" class="page-link" @click="irAPagina(page as number)">
+                                    {{ page }}
+                                </button>
+                                <span v-else class="page-link">{{ page }}</span>
+                            </li>
+
+                            <li class="page-item" :class="{ disabled: currentPage === lastPage }">
+                                <button class="page-link" @click="irAPagina(currentPage + 1)"
+                                    :disabled="currentPage === lastPage">
+                                    Siguiente <i class="bi bi-chevron-right"></i>
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
+
+<style scoped>
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, .02);
+}
+</style>

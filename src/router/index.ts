@@ -15,7 +15,7 @@ import ForbiddenView from '../views/ForbiddenView.vue'
 declare module 'vue-router' {
   interface RouteMeta {
     requiresAuth?: boolean
-    permission?: string
+    permission?: string | string[]
   }
 }
 
@@ -91,6 +91,15 @@ const router = createRouter({
       },
     },
     {
+      path: '/reportes',
+      name: 'reportes',
+      component: () => import('../views/ReportesView.vue'),
+      meta: {
+        requiresAuth: true,
+        permission: ['Reporte de Pagos', 'Reporte Estado de Cuenta'],
+      },
+    },
+    {
       path: '/auditoria',
       name: 'auditoria',
       component: AuditoriaView,
@@ -122,10 +131,13 @@ router.beforeEach(async (to, from, next) => {
     }
 
     // Verificar permisos si la ruta los requiere
-    if (to.meta.permission && typeof to.meta.permission === 'string') {
-      if (!can(to.meta.permission)) {
-        next({ name: 'forbidden' })
-        return
+    if (to.meta.permission) {
+      const perms = Array.isArray(to.meta.permission)
+        ? to.meta.permission
+        : [to.meta.permission];
+      if (!perms.some(p => can(p))) {
+        next({ name: 'forbidden' });
+        return;
       }
     }
   }
