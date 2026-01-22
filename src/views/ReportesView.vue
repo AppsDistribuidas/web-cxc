@@ -244,6 +244,198 @@ onMounted(async () => {
         console.error("Error cargando clientes", e);
     }
 });
+
+// --- HISTORIAL DE DOCUMENTOS ---
+interface DocumentoHistorial {
+    nombre: string;
+    ruta: string;
+    url: string;
+    cedula: string;
+    fecha_inicio: string;
+    fecha_fin: string;
+    generado: string;
+    timestamp: number;
+}
+
+const showHistorialModal = ref(false);
+const historialTipo = ref<'pagos' | 'estados-cuenta'>('pagos');
+const historialDocumentos = ref<DocumentoHistorial[]>([]);
+const historialDocumentosFiltrados = ref<DocumentoHistorial[]>([]);
+const historialLoading = ref(false);
+
+// Filtros del historial
+const historialFiltroCliente = ref('');
+const historialFiltroFechaInicio = ref('');
+const historialFiltroFechaFin = ref('');
+const historialFiltroGenerado = ref('');
+const historialPaginaActual = ref(1);
+const historialPorPagina = 5;
+
+// Paginación del historial
+const historialPaginados = computed(() => {
+    const inicio = (historialPaginaActual.value - 1) * historialPorPagina;
+    return historialDocumentosFiltrados.value.slice(inicio, inicio + historialPorPagina);
+});
+
+const historialTotalPaginas = computed(() =>
+    Math.ceil(historialDocumentosFiltrados.value.length / historialPorPagina)
+);
+
+// Función para aplicar filtros del historial
+const aplicarFiltrosHistorial = () => {
+    historialPaginaActual.value = 1;
+
+    historialDocumentosFiltrados.value = historialDocumentos.value.filter(doc => {
+        // Filtro por cliente (cédula o nombre)
+        if (historialFiltroCliente.value) {
+            const busqueda = historialFiltroCliente.value.toLowerCase();
+            const nombreCliente = obtenerNombreCliente(doc.cedula).toLowerCase();
+            if (!doc.cedula.includes(busqueda) && !nombreCliente.includes(busqueda)) {
+                return false;
+            }
+        }
+
+        // Filtro por fecha inicio
+        if (historialFiltroFechaInicio.value) {
+            if (doc.fecha_inicio !== historialFiltroFechaInicio.value) {
+                return false;
+            }
+        }
+
+        // Filtro por fecha fin
+        if (historialFiltroFechaFin.value) {
+            if (doc.fecha_fin !== historialFiltroFechaFin.value) {
+                return false;
+            }
+        }
+
+        // Filtro por fecha de generación (solo fecha, sin hora)
+        if (historialFiltroGenerado.value) {
+            // doc.generado tiene formato "DD/MM/YYYY HH:MM"
+            // historialFiltroGenerado tiene formato "YYYY-MM-DD"
+            const [dia, mes, anioHora] = doc.generado.split('/');
+            const anio = anioHora?.split(' ')[0];
+            const fechaDoc = `${anio}-${mes}-${dia}`;
+            if (fechaDoc !== historialFiltroGenerado.value) {
+                return false;
+            }
+        }
+
+        return true;
+    });
+};
+
+// Watch para aplicar filtros cuando cambian
+watch([historialFiltroCliente, historialFiltroFechaInicio, historialFiltroFechaFin, historialFiltroGenerado], () => {
+    aplicarFiltrosHistorial();
+});
+
+const limpiarFiltrosHistorial = () => {
+    historialFiltroCliente.value = '';
+    historialFiltroFechaInicio.value = '';
+    historialFiltroFechaFin.value = '';
+    historialFiltroGenerado.value = '';
+    historialDocumentosFiltrados.value = historialDocumentos.value;
+    historialPaginaActual.value = 1;
+};
+
+const abrirHistorial = async (tipo: 'pagos' | 'estados-cuenta') => {
+    historialTipo.value = tipo;
+    historialLoading.value = true;
+    showHistorialModal.value = true;
+    historialDocumentos.value = [];
+    historialDocumentosFiltrados.value = [];
+    limpiarFiltrosHistorial();
+
+    try {
+        const response = await api.get('/v1/reportes/documentos', { params: { tipo } });
+        historialDocumentos.value = response.data.data;
+        historialDocumentosFiltrados.value = response.data.data;
+    } catch (e: any) {
+        showError('Error al cargar el historial de documentos.');
+        console.error(e);
+    } finally {
+        historialLoading.value = false;
+    }
+};
+
+const cerrarHistorial = () => {
+    showHistorialModal.value = false;
+    historialDocumentos.value = [];
+    historialDocumentosFiltrados.value = [];
+    historialFiltroCliente.value = '';
+};
+
+// Obtener nombre del cliente desde la cédula
+const obtenerNombreCliente = (cedula: string): string => {
+    if (cedula === 'todos') return 'Todos';
+    const cliente = clientesDisponibles.value.find(c => c.cedula === cedula);
+    return cliente ? cliente.nombre : cedula;
+};
+
+// Descargar documento del historial
+const descargarDocumento = (doc: DocumentoHistorial) => {
+    const link = document.createElement('a');
+    link.href = doc.url;
+    link.setAttribute('download', doc.nombre);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+};
+
+// --- MEJORAS UX: Autocompletar uniforme para Pagos ---
+const pagosAutocompletar = ref('');
+
+// Nombre del cliente seleccionado para mostrar en Pagos
+const nombreClienteSeleccionadoPagos = computed(() => {
+    if (!pagosFilter.value.cedula_cliente) return '';
+    const cliente = clientesDisponibles.value.find(c => c.cedula === pagosFilter.value.cedula_cliente);
+    return cliente ? cliente.nombre : '';
+});
+
+// Watch para limpiar nombre cuando se borra la cédula en Pagos
+watch(pagosAutocompletar, (newVal) => {
+    if (!newVal || newVal.trim() === '') {
+        pagosFilter.value.cedula_cliente = '';
+    }
+});
+
+// Selección de cliente en Pagos
+const seleccionarClientePagos = () => {
+    const found = clientesDisponibles.value.find(c => c.cedula === pagosAutocompletar.value);
+    if (found) {
+        pagosFilter.value.cedula_cliente = found.cedula;
+    } else if (/^\d+$/.test(pagosAutocompletar.value)) {
+        pagosFilter.value.cedula_cliente = pagosAutocompletar.value;
+    }
+};
+
+// Computed para filtrar clientes en Pagos (uniforme)
+const filteredClientesPagosUniforme = computed(() => {
+    if (!pagosAutocompletar.value) return clientesDisponibles.value.slice(0, 10);
+    const busqueda = pagosAutocompletar.value.toLowerCase();
+    return clientesDisponibles.value.filter(c =>
+        c.cedula.includes(busqueda) ||
+        (c.nombre || '').toLowerCase().includes(busqueda)
+    ).slice(0, 10);
+});
+
+// Validación para PDF sin reporte generado
+const validarReporteGeneradoPagos = (): boolean => {
+    if (pagosResultados.value.length === 0) {
+        showWarning('Primero debe generar un reporte antes de descargar el PDF.', 'Reporte requerido');
+        return false;
+    }
+    return true;
+};
+
+const validarReporteGeneradoEstado = (): boolean => {
+    if (!estadoCuentaData.value) {
+        showWarning('Primero debe generar un estado de cuenta antes de descargar el PDF.', 'Reporte requerido');
+        return false;
+    }
+    return true;
+};
 </script>
 
 <template>
@@ -270,35 +462,48 @@ onMounted(async () => {
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
                     <div class="row g-3 align-items-end">
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold">Fecha Inicio</label>
-                            <input v-model="pagosFilter.fecha_inicio" type="date" class="form-control">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold">Fecha Fin</label>
-                            <input v-model="pagosFilter.fecha_fin" type="date" class="form-control">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold">Cliente (Opcional)</label>
-                            <input v-model="pagosFilter.cedula_cliente" list="dlPagos" class="form-control"
-                                placeholder="Todos los clientes...">
-                            <datalist id="dlPagos">
-                                <option v-for="c in filteredClientesPagos" :key="c.cedula" :value="c.cedula">{{ c.nombre
-                                }}</option>
-                            </datalist>
-                        </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label class="form-label invisible">Acciones</label>
                             <div class="d-flex gap-2">
-                                <button @click="generarReportePagos('json')" class="btn btn-primary flex-grow-1"
-                                    :disabled="pagosLoading">
-                                    <i class="bi bi-search"></i> Consultar
+                                <button @click="abrirHistorial('pagos')" class="btn btn-outline-secondary"
+                                    title="Ver historial de documentos">
+                                    <i class="bi bi-folder2-open"></i>
                                 </button>
-                                <button @click="generarReportePagos('pdf')" class="btn btn-danger"
-                                    :disabled="pagosLoading">
+                                <button @click="validarReporteGeneradoPagos() && generarReportePagos('pdf')"
+                                    class="btn btn-danger" :disabled="pagosLoading">
                                     <i class="bi bi-file-pdf"></i> PDF
                                 </button>
+                                <button @click="generarReportePagos('json')" class="btn btn-primary flex-grow-1"
+                                    :disabled="pagosLoading">
+                                    <i class="bi bi-lightning-charge"></i> Generar
+                                </button>
                             </div>
+                            <div class="form-text invisible">Placeholder</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Buscar Cliente (Nombre o Cédula) - Opcional</label>
+                            <input v-model="pagosAutocompletar" list="dlPagosUniforme" class="form-control"
+                                placeholder="Escriba para buscar..." @change="seleccionarClientePagos"
+                                @blur="seleccionarClientePagos">
+                            <datalist id="dlPagosUniforme">
+                                <option v-for="c in filteredClientesPagosUniforme" :key="c.cedula" :value="c.cedula">{{
+                                    c.nombre }}</option>
+                            </datalist>
+                            <div class="form-text"
+                                :class="nombreClienteSeleccionadoPagos ? 'text-primary' : 'invisible'">
+                                <i class="bi bi-person-check me-1"></i>{{ nombreClienteSeleccionadoPagos ||
+                                    'Placeholder' }}
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold">Fecha Inicio</label>
+                            <input v-model="pagosFilter.fecha_inicio" type="date" class="form-control">
+                            <div class="form-text invisible">Placeholder</div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold">Fecha Fin</label>
+                            <input v-model="pagosFilter.fecha_fin" type="date" class="form-control">
+                            <div class="form-text invisible">Placeholder</div>
                         </div>
                     </div>
                 </div>
@@ -387,7 +592,7 @@ onMounted(async () => {
                 </div>
             </div>
             <div v-else class="alert alert-secondary text-center mt-4">
-                Configure los filtros y presione Consultar para ver los resultados.
+                Configure el filtro y presione en Generar para consultar el reporte de pagos.
             </div>
         </div>
 
@@ -396,6 +601,25 @@ onMounted(async () => {
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
                     <div class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label invisible">Acciones</label>
+                            <div class="d-flex gap-2">
+                                <button @click="abrirHistorial('estados-cuenta')" class="btn btn-outline-secondary"
+                                    title="Ver historial de documentos">
+                                    <i class="bi bi-folder2-open"></i>
+                                </button>
+                                <button @click="validarReporteGeneradoEstado() && generarEstadoCuenta('pdf')"
+                                    class="btn btn-danger"
+                                    :disabled="estadoCuentaLoading || !estadoCuentaFilter.cedula_cliente">
+                                    <i class="bi bi-file-pdf"></i> PDF
+                                </button>
+                                <button @click="generarEstadoCuenta('json')" class="btn btn-primary flex-grow-1"
+                                    :disabled="estadoCuentaLoading || !estadoCuentaFilter.cedula_cliente">
+                                    <i class="bi bi-lightning-charge"></i> Generar
+                                </button>
+                            </div>
+                            <div class="form-text invisible">Placeholder</div>
+                        </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Buscar Cliente (Nombre o Cédula)</label>
                             <input v-model="estadoCuentaAutocompletar" list="dlEstado" class="form-control"
@@ -409,28 +633,14 @@ onMounted(async () => {
                                 <i class="bi bi-person-check me-1"></i>{{ nombreClienteSeleccionado || 'Placeholder' }}
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label fw-bold">Fecha Inicio</label>
                             <input v-model="estadoCuentaFilter.fecha_inicio" type="date" class="form-control">
                             <div class="form-text invisible">Placeholder</div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label fw-bold">Fecha Fin</label>
                             <input v-model="estadoCuentaFilter.fecha_fin" type="date" class="form-control">
-                            <div class="form-text invisible">Placeholder</div>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label invisible">Acciones</label>
-                            <div class="d-flex gap-2">
-                                <button @click="generarEstadoCuenta('json')" class="btn btn-primary flex-grow-1"
-                                    :disabled="estadoCuentaLoading || !estadoCuentaFilter.cedula_cliente">
-                                    <i class="bi bi-eye"></i> Ver
-                                </button>
-                                <button @click="generarEstadoCuenta('pdf')" class="btn btn-danger"
-                                    :disabled="estadoCuentaLoading || !estadoCuentaFilter.cedula_cliente">
-                                    <i class="bi bi-file-pdf"></i> PDF
-                                </button>
-                            </div>
                             <div class="form-text invisible">Placeholder</div>
                         </div>
                     </div>
@@ -552,7 +762,131 @@ onMounted(async () => {
             </div>
 
             <div v-else class="alert alert-secondary text-center mt-4">
-                Seleccione un cliente y haga clic en Ver para consultar su estado de cuenta.
+                Configure el filtro y presione en Generar para consultar el estado de cuenta.
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: HISTORIAL DE DOCUMENTOS -->
+    <div v-if="showHistorialModal" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-folder2-open me-2"></i>
+                        Historial de {{ historialTipo === 'pagos' ? 'Reportes de Pagos' : 'Estados de Cuenta' }}
+                    </h5>
+                    <button type="button" class="btn-close" @click="cerrarHistorial"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Filtros -->
+                    <div class="row g-2 mb-3">
+                        <div class="col" style="width: 60px; flex: 0 0 60px;">
+                            <label class="form-label small text-muted mb-1">&nbsp;</label>
+                            <button @click="limpiarFiltrosHistorial" class="btn btn-sm btn-outline-secondary w-100">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        </div>
+                        <div class="col">
+                            <label class="form-label small text-muted mb-1">Cliente</label>
+                            <input v-model="historialFiltroCliente" type="text" class="form-control form-control-sm"
+                                placeholder="Nombre o cédula...">
+                        </div>
+                        <div class="col">
+                            <label class="form-label small text-muted mb-1">Fecha Inicio</label>
+                            <input v-model="historialFiltroFechaInicio" type="date"
+                                class="form-control form-control-sm">
+                        </div>
+                        <div class="col">
+                            <label class="form-label small text-muted mb-1">Fecha Fin</label>
+                            <input v-model="historialFiltroFechaFin" type="date" class="form-control form-control-sm">
+                        </div>
+                        <div class="col">
+                            <label class="form-label small text-muted mb-1">Generado</label>
+                            <input v-model="historialFiltroGenerado" type="date" class="form-control form-control-sm">
+                        </div>
+                    </div>
+
+                    <div v-if="historialLoading" class="text-center py-4">
+                        <div class="spinner-border text-primary"></div>
+                        <p class="mt-2 text-muted">Cargando documentos...</p>
+                    </div>
+
+                    <div v-else-if="historialDocumentos.length === 0" class="text-center py-4">
+                        <i class="bi bi-folder-x display-4 text-muted"></i>
+                        <p class="mt-2 text-muted">No hay documentos generados aún.</p>
+                    </div>
+
+                    <div v-else-if="historialDocumentosFiltrados.length === 0" class="text-center py-4">
+                        <i class="bi bi-search display-4 text-muted"></i>
+                        <p class="mt-2 text-muted">No se encontraron documentos con ese filtro.</p>
+                    </div>
+
+                    <div v-else>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 60px;" class="text-center">Acciones</th>
+                                        <th>Cliente</th>
+                                        <th>Fecha Inicio</th>
+                                        <th>Fecha Fin</th>
+                                        <th>Generado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="doc in historialPaginados" :key="doc.nombre">
+                                        <td class="text-center">
+                                            <button @click="descargarDocumento(doc)" class="btn btn-sm btn-primary"
+                                                title="Descargar">
+                                                <i class="bi bi-download"></i>
+                                            </button>
+                                        </td>
+                                        <td>
+                                            <span class="fw-medium">{{ obtenerNombreCliente(doc.cedula) }}</span>
+                                            <small v-if="doc.cedula !== 'todos'" class="text-muted d-block">{{
+                                                doc.cedula }}</small>
+                                        </td>
+                                        <td>{{ doc.fecha_inicio }}</td>
+                                        <td>{{ doc.fecha_fin }}</td>
+                                        <td>{{ doc.generado }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Paginación -->
+                        <nav v-if="historialTotalPaginas > 1" class="d-flex justify-content-center mt-3">
+                            <ul class="pagination pagination-sm mb-0">
+                                <li class="page-item" :class="{ disabled: historialPaginaActual === 1 }">
+                                    <button class="page-link" @click="historialPaginaActual--"
+                                        :disabled="historialPaginaActual === 1">
+                                        <i class="bi bi-chevron-left"></i>
+                                    </button>
+                                </li>
+                                <li v-for="p in historialTotalPaginas" :key="p" class="page-item"
+                                    :class="{ active: historialPaginaActual === p }">
+                                    <button class="page-link" @click="historialPaginaActual = p">{{ p }}</button>
+                                </li>
+                                <li class="page-item"
+                                    :class="{ disabled: historialPaginaActual === historialTotalPaginas }">
+                                    <button class="page-link" @click="historialPaginaActual++"
+                                        :disabled="historialPaginaActual === historialTotalPaginas">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </button>
+                                </li>
+                            </ul>
+                        </nav>
+
+                        <div class="text-muted small text-center mt-2">
+                            Mostrando {{ historialPaginados.length }} de {{ historialDocumentosFiltrados.length }}
+                            documentos
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @click="cerrarHistorial">Cerrar</button>
+                </div>
             </div>
         </div>
     </div>
