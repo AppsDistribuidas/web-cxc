@@ -213,7 +213,7 @@ const buscarPorFecha = () => {
 
 
 // Watch para aplicar filtros locales automáticamente con debounce
-let timeout: number;
+let timeout: ReturnType<typeof setTimeout>;
 watch([filtroUsuario, filtroAccion, filtroDescripcion, filtroFuncion, filtroIP], () => {
     clearTimeout(timeout);
     timeout = setTimeout(() => {
