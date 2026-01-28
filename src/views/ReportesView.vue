@@ -105,6 +105,8 @@ const generarReportePagos = async (type: 'json' | 'pdf') => {
             }
         }
     } catch (e: any) {
+        // Ignorar 401 - manejado globalmente por interceptor
+        if (e.response?.status === 401) return;
         const mensaje = e.response?.data?.message || 'Error al generar reporte de pagos. Verifique las fechas.';
         showError(mensaje);
         console.error(e);
@@ -204,6 +206,8 @@ const generarEstadoCuenta = async (type: 'json' | 'pdf') => {
             showSuccess('Estado de cuenta generado correctamente.', 'Consulta exitosa');
         }
     } catch (e: any) {
+        // Ignorar 401 - manejado globalmente por interceptor
+        if (e.response?.status === 401) return;
         const mensaje = e.response?.data?.message || 'Error al generar estado de cuenta.';
         showError(mensaje);
         console.error(e);
@@ -562,7 +566,7 @@ const validarReporteGeneradoEstado = (): boolean => {
                                         <td class="text-end text-muted">${{ Number(d.total_factura || 0).toFixed(2) }}
                                         </td>
                                         <td class="text-end fw-bold text-success">${{ Number(d.monto_pagado).toFixed(2)
-                                            }}</td>
+                                        }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -674,7 +678,7 @@ const validarReporteGeneradoEstado = (): boolean => {
                     <div class="bg-light border rounded p-3 mb-4 text-center">
                         <div class="text-muted small">SALDO INICIAL</div>
                         <div class="fs-3 fw-bold text-secondary">${{ Number(estadoCuentaData.saldo_inicial).toFixed(2)
-                        }}</div>
+                            }}</div>
                         <div class="text-muted small">(Deuda acumulada antes del {{ estadoCuentaData.periodo?.desde }})
                         </div>
                     </div>
@@ -687,7 +691,7 @@ const validarReporteGeneradoEstado = (): boolean => {
                                 <i class="bi bi-list-ul me-1"></i>Movimientos
                                 <span class="badge bg-secondary ms-1">{{
                                     estadoCuentaData.movimientos?.length || 0
-                                    }}</span>
+                                }}</span>
                             </button>
                         </li>
                         <li class="nav-item">

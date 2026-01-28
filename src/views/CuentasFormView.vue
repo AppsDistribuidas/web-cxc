@@ -35,6 +35,8 @@ const guardar = async () => {
         await showSuccess('La cuenta bancaria ha sido creada exitosamente');
         router.push('/cuentas');
     } catch (e: any) {
+        // Ignorar 401 - manejado globalmente por interceptor
+        if (e.response?.status === 401) return;
         if (e.response?.status === 422) {
             const errors = e.response.data.errors;
             const errorMessages = Object.values(errors).flat().join('\n');

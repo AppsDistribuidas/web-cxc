@@ -15,6 +15,13 @@ const pagos = ref<Pago[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 
+// Clientes para mostrar nombres
+interface Cliente {
+    cedula: string;
+    nombre: string;
+}
+const clientes = ref<Cliente[]>([]);
+
 // Pagination state
 const currentPage = ref(1);
 const lastPage = ref(1);
@@ -92,9 +99,12 @@ const obtenerPagos = async (page: number = 1) => {
             sort_order: sortOrder.value
         });
 
-        // Add filters
+        // Add filters (backend filters)
         if (filterNumeroPago.value) params.append('numero_pago', filterNumeroPago.value);
-        if (filterCedula.value) params.append('cedula_cliente', filterCedula.value);
+        // Solo enviar cédula al backend si parece ser una cédula (números)
+        if (filterCedula.value && /^\d+$/.test(filterCedula.value)) {
+            params.append('cedula_cliente', filterCedula.value);
+        }
         if (filterCuenta.value) params.append('codigo_cuenta', filterCuenta.value);
         if (filterEstado.value !== '') params.append('estado', filterEstado.value);
         if (filterFecha.value) params.append('fecha', filterFecha.value);
@@ -116,6 +126,15 @@ const obtenerPagos = async (page: number = 1) => {
             if (!isNaN(montoNum)) {
                 respData = respData.filter((p: any) => Number(p.monto_total || 0) === montoNum);
             }
+        }
+
+        // Filtro por nombre de cliente (client-side)
+        if (filterCedula.value && !/^\d+$/.test(filterCedula.value)) {
+            const busqueda = filterCedula.value.toLowerCase();
+            respData = respData.filter((p: any) => {
+                const nombre = getNombreCliente(p.cedula_cliente).toLowerCase();
+                return nombre.includes(busqueda);
+            });
         }
 
         pagos.value = respData;
@@ -176,6 +195,8 @@ const anularPago = async (pago: any) => {
         await showSuccess("Pago anulado correctamente.");
         obtenerPagos(currentPage.value);
     } catch (e: any) {
+        // Ignorar 401 - manejado globalmente por interceptor
+        if (e.response?.status === 401) return;
         const mensaje = e.response?.data?.message || "Error al anular el pago.";
         await showError(mensaje);
     }
@@ -197,7 +218,9 @@ const imprimirComprobante = async (numeroPago: string) => {
         document.body.appendChild(link);
         link.click();
         obtenerPagos(currentPage.value);
-    } catch (e) {
+    } catch (e: any) {
+        // Ignorar 401 - manejado globalmente por interceptor
+        if (e.response?.status === 401) return;
         await showError("Error al descargar el comprobante.");
     }
 };
@@ -211,8 +234,25 @@ watch([filterNumeroPago, filterCedula, filterCuenta, filterEstado, filterFecha, 
     }, 300);
 });
 
+// Cargar clientes para mostrar nombres
+const cargarClientes = async () => {
+    try {
+        const response = await api.get('/v1/pagos/clientes');
+        clientes.value = response.data.data || response.data || [];
+    } catch (e) {
+        console.error('Error al cargar clientes:', e);
+    }
+};
+
+// Helper para obtener nombre del cliente
+const getNombreCliente = (cedula: string): string => {
+    const cliente = clientes.value.find(c => c.cedula === cedula);
+    return cliente?.nombre || '';
+};
+
 onMounted(() => {
     obtenerPagos();
+    cargarClientes();
 });
 </script>
 
@@ -294,7 +334,8 @@ onMounted(() => {
                                     placeholder="No. Pago">
                             </th>
                             <th>
-                                <input v-model="filterCedula" class="form-control form-control-sm" placeholder="Cédula">
+                                <input v-model="filterCedula" class="form-control form-control-sm"
+                                    placeholder="Cédula o Nombre">
                             </th>
                             <th>
                                 <input v-model="filterCuenta" class="form-control form-control-sm" placeholder="Cuenta">
@@ -343,6 +384,7 @@ onMounted(() => {
                             <td>
                                 <div class="d-flex flex-column">
                                     <span class="fw-medium">{{ pago.cedula_cliente }}</span>
+                                    <span class="text-muted small">{{ getNombreCliente(pago.cedula_cliente) }}</span>
                                 </div>
                             </td>
                             <td class="text-center">

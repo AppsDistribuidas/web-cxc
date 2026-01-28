@@ -179,6 +179,8 @@ const obtenerPistas = async () => {
             error.value = response.data.message || 'Error al obtener las pistas';
         }
     } catch (e: any) {
+        // Ignorar 401 - manejado globalmente por interceptor
+        if (e.response?.status === 401) return;
         console.error(e);
         if (e.response?.status === 403) {
             error.value = 'No tiene permisos para ver las pistas de auditoría';
@@ -331,9 +333,9 @@ onMounted(() => {
                     <div class="col">
                         <span class="text-muted small">
                             Mostrando <strong>{{ pistas.length }}</strong> de <strong>{{ pagination.total_records
-                                }}</strong> registros
+                            }}</strong> registros
                             | Página <strong>{{ pagination.current_page }}</strong> de <strong>{{ pagination.total_pages
-                                }}</strong>
+                            }}</strong>
                         </span>
                     </div>
                 </div>

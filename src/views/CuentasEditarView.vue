@@ -43,7 +43,9 @@ onMounted(async () => {
             estado: Boolean(data.estado)
         };
 
-    } catch (e) {
+    } catch (e: any) {
+        // Ignorar 401 - manejado globalmente por interceptor
+        if (e.response?.status === 401) return;
         console.error(e);
         await showError("Error al cargar los datos de la cuenta.");
     } finally {
@@ -61,6 +63,8 @@ const actualizar = async () => {
         await showSuccess('La cuenta bancaria ha sido actualizada exitosamente');
         router.push('/cuentas');
     } catch (e: any) {
+        // Ignorar 401 - manejado globalmente por interceptor
+        if (e.response?.status === 401) return;
         if (e.response?.status === 422) {
             // Errores de validación de Laravel
             const errors = e.response.data.errors;

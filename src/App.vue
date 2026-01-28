@@ -8,7 +8,7 @@ const { isAuthenticated, logout, user, can } = useAuth();
 <template>
   <nav v-if="isAuthenticated" class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm">
     <div class="container">
-      <a class="navbar-brand" href="#">Sistema CXC</a>
+      <RouterLink to="/" class="navbar-brand" active-class="active">Sistema CXC</RouterLink>
 
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>

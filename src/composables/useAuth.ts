@@ -2,9 +2,40 @@ import { ref, computed } from 'vue'
 import api from '@/api/axios'
 import { useRouter } from 'vue-router'
 import type { UserData } from '../types/AuthTypes'
+import Swal from 'sweetalert2'
 
 // --- ESTADO GLOBAL (Singleton) ---
 const user = ref<UserData | null>(null)
+let isLoggingOut = false // Flag para evitar múltiples llamadas simultáneas
+
+/**
+ * Cierra sesión de forma forzada (ej: token expirado).
+ * Exportado globalmente para uso desde el interceptor de axios.
+ */
+export function forceLogout() {
+  // Evitar múltiples llamadas simultáneas
+  if (isLoggingOut) return
+  isLoggingOut = true
+
+  user.value = null
+  localStorage.removeItem('user')
+
+  // Evitar redirección si ya está en login
+  if (window.location.pathname !== '/login') {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Sesión Expirada',
+      text: 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.',
+      confirmButtonText: 'Iniciar Sesión',
+      confirmButtonColor: '#0d6efd',
+      allowOutsideClick: false,
+    }).then(() => {
+      window.location.href = '/login'
+    })
+  } else {
+    isLoggingOut = false // Reset si ya está en login
+  }
+}
 
 const storedUser = localStorage.getItem('user')
 if (storedUser) {
