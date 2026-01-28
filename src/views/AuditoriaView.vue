@@ -57,7 +57,7 @@ const toggleSort = (key: string) => {
 
 const formatearFecha = (fechaString: string) => {
     if (!fechaString) return 'N/A';
-    
+
     try {
         const fecha = new Date(fechaString);
         if (isNaN(fecha.getTime())) {
@@ -124,7 +124,7 @@ const aplicarFiltrosLocales = () => {
         resultado.sort((a: any, b: any) => {
             let aVal: string;
             let bVal: string;
-            
+
             // Manejar campos anidados
             if (sortBy.value === 'usuario') {
                 aVal = (a.usuario?.username ?? '').toString();
@@ -136,14 +136,14 @@ const aplicarFiltrosLocales = () => {
                 aVal = (a[sortBy.value!] ?? '').toString();
                 bVal = (b[sortBy.value!] ?? '').toString();
             }
-            
+
             // Para fechas, comparar como fechas
             if (sortBy.value === 'fecha') {
                 const dateA = new Date(aVal).getTime() || 0;
                 const dateB = new Date(bVal).getTime() || 0;
                 return sortDir.value === 'asc' ? dateA - dateB : dateB - dateA;
             }
-            
+
             return sortDir.value === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
         });
     }
@@ -154,13 +154,13 @@ const aplicarFiltrosLocales = () => {
 const obtenerPistas = async () => {
     loading.value = true;
     error.value = null;
-    
+
     try {
         const params: Record<string, any> = {
             page: currentPage.value,
             limit: limit.value,
         };
-        
+
         // Enviar filtros de fecha a la API
         if (filtroFechaInicio.value) {
             params.fecha_inicio = filtroFechaInicio.value;
@@ -170,7 +170,7 @@ const obtenerPistas = async () => {
         }
 
         const response = await api.get('/v1/reportes/auditoria', { params });
-        
+
         if (response.data.success) {
             allPistas.value = response.data.data || [];
             pagination.value = response.data.pagination || null;
@@ -231,11 +231,11 @@ const irAPagina = (pagina: number) => {
 // Computed property para generar páginas visibles de forma eficiente
 const paginasVisibles = computed(() => {
     if (!pagination.value) return [];
-    
+
     const totalPages = pagination.value.total_pages;
     const current = currentPage.value;
     const pages: (number | string)[] = [];
-    
+
     // Si hay 7 páginas o menos, mostrar todas
     if (totalPages <= 7) {
         for (let i = 1; i <= totalPages; i++) {
@@ -243,46 +243,46 @@ const paginasVisibles = computed(() => {
         }
         return pages;
     }
-    
+
     // Siempre mostrar primera página
     pages.push(1);
-    
+
     // Determinar el rango de páginas alrededor de la actual
     let startPage = Math.max(2, current - 1);
     let endPage = Math.min(totalPages - 1, current + 1);
-    
+
     // Ajustar si estamos cerca del inicio
     if (current <= 3) {
         startPage = 2;
         endPage = Math.min(4, totalPages - 1);
     }
-    
+
     // Ajustar si estamos cerca del final
     if (current >= totalPages - 2) {
         startPage = Math.max(2, totalPages - 3);
         endPage = totalPages - 1;
     }
-    
+
     // Agregar elipsis al inicio si es necesario
     if (startPage > 3) {
         pages.push('...');
     }
-    
+
     // Agregar páginas del rango
     for (let i = startPage; i <= endPage; i++) {
         pages.push(i);
     }
-    
+
     // Agregar elipsis al final si es necesario
     if (endPage < totalPages - 2) {
         pages.push('...');
     }
-    
+
     // Siempre mostrar última página si no está ya incluida en el rango
     if (endPage < totalPages) {
         pages.push(totalPages);
     }
-    
+
     return pages;
 });
 
@@ -307,16 +307,19 @@ onMounted(() => {
                     <div class="col-auto">
                         <div class="d-flex align-items-center gap-2">
                             <label class="form-label mb-0 small text-muted">Desde:</label>
-                            <input type="date" v-model="filtroFechaInicio" class="form-control form-control-sm" style="width: 140px;">
+                            <input type="date" v-model="filtroFechaInicio" class="form-control form-control-sm"
+                                style="width: 140px;">
                             <label class="form-label mb-0 small text-muted">Hasta:</label>
-                            <input type="date" v-model="filtroFechaFin" class="form-control form-control-sm" style="width: 140px;">
+                            <input type="date" v-model="filtroFechaFin" class="form-control form-control-sm"
+                                style="width: 140px;">
                             <button @click="buscarPorFecha" class="btn btn-primary btn-sm">
                                 <i class="bi bi-search"></i> Buscar
                             </button>
                         </div>
                     </div>
                     <div class="col text-end">
-                        <button @click="limpiarFiltros" class="btn btn-outline-secondary btn-sm me-2" title="Limpiar filtros">
+                        <button @click="limpiarFiltros" class="btn btn-outline-secondary btn-sm me-2"
+                            title="Limpiar filtros">
                             <i class="bi bi-x-circle"></i> Limpiar
                         </button>
                         <button @click="obtenerPistas" class="btn btn-outline-secondary btn-sm" title="Actualizar">
@@ -327,8 +330,10 @@ onMounted(() => {
                 <div class="row mt-2" v-if="pagination">
                     <div class="col">
                         <span class="text-muted small">
-                            Mostrando <strong>{{ pistas.length }}</strong> de <strong>{{ pagination.total_records }}</strong> registros
-                            | Página <strong>{{ pagination.current_page }}</strong> de <strong>{{ pagination.total_pages }}</strong>
+                            Mostrando <strong>{{ pistas.length }}</strong> de <strong>{{ pagination.total_records
+                                }}</strong> registros
+                            | Página <strong>{{ pagination.current_page }}</strong> de <strong>{{ pagination.total_pages
+                                }}</strong>
                         </span>
                     </div>
                 </div>
@@ -352,12 +357,18 @@ onMounted(() => {
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light text-secondary">
                         <tr>
-                            <th class="ps-3" @click="toggleSort('fecha')" style="cursor:pointer">Fecha/Hora <small v-if="sortBy==='fecha'">{{ sortDir==='asc' ? '▲' : '▼' }}</small></th>
-                            <th @click="toggleSort('usuario')" style="cursor:pointer">Usuario <small v-if="sortBy==='usuario'">{{ sortDir==='asc' ? '▲' : '▼' }}</small></th>
-                            <th @click="toggleSort('accion')" style="cursor:pointer">Acción <small v-if="sortBy==='accion'">{{ sortDir==='asc' ? '▲' : '▼' }}</small></th>
-                            <th @click="toggleSort('descripcion')" style="cursor:pointer">Descripción <small v-if="sortBy==='descripcion'">{{ sortDir==='asc' ? '▲' : '▼' }}</small></th>
-                            <th @click="toggleSort('funcion')" style="cursor:pointer">Función <small v-if="sortBy==='funcion'">{{ sortDir==='asc' ? '▲' : '▼' }}</small></th>
-                            <th @click="toggleSort('ipUsuario')" style="cursor:pointer">IP <small v-if="sortBy==='ipUsuario'">{{ sortDir==='asc' ? '▲' : '▼' }}</small></th>
+                            <th class="ps-3" @click="toggleSort('fecha')" style="cursor:pointer">Fecha/Hora <small
+                                    v-if="sortBy === 'fecha'">{{ sortDir === 'asc' ? '▲' : '▼' }}</small></th>
+                            <th @click="toggleSort('usuario')" style="cursor:pointer">Usuario <small
+                                    v-if="sortBy === 'usuario'">{{ sortDir === 'asc' ? '▲' : '▼' }}</small></th>
+                            <th @click="toggleSort('accion')" style="cursor:pointer">Acción <small
+                                    v-if="sortBy === 'accion'">{{ sortDir === 'asc' ? '▲' : '▼' }}</small></th>
+                            <th @click="toggleSort('descripcion')" style="cursor:pointer">Descripción <small
+                                    v-if="sortBy === 'descripcion'">{{ sortDir === 'asc' ? '▲' : '▼' }}</small></th>
+                            <th @click="toggleSort('funcion')" style="cursor:pointer">Función <small
+                                    v-if="sortBy === 'funcion'">{{ sortDir === 'asc' ? '▲' : '▼' }}</small></th>
+                            <th @click="toggleSort('ipUsuario')" style="cursor:pointer">IP <small
+                                    v-if="sortBy === 'ipUsuario'">{{ sortDir === 'asc' ? '▲' : '▼' }}</small></th>
                         </tr>
                         <!-- Filter row -->
                         <tr class="bg-white">
@@ -365,7 +376,8 @@ onMounted(() => {
                                 <!-- Fecha se filtra arriba -->
                             </th>
                             <th>
-                                <input v-model="filtroUsuario" class="form-control form-control-sm" placeholder="Usuario">
+                                <input v-model="filtroUsuario" class="form-control form-control-sm"
+                                    placeholder="Usuario">
                             </th>
                             <th>
                                 <select v-model="filtroAccion" class="form-select form-select-sm">
@@ -379,10 +391,12 @@ onMounted(() => {
                                 </select>
                             </th>
                             <th>
-                                <input v-model="filtroDescripcion" class="form-control form-control-sm" placeholder="Descripción">
+                                <input v-model="filtroDescripcion" class="form-control form-control-sm"
+                                    placeholder="Descripción">
                             </th>
                             <th>
-                                <input v-model="filtroFuncion" class="form-control form-control-sm" placeholder="Función">
+                                <input v-model="filtroFuncion" class="form-control form-control-sm"
+                                    placeholder="Función">
                             </th>
                             <th>
                                 <input v-model="filtroIP" class="form-control form-control-sm" placeholder="IP">
@@ -403,7 +417,8 @@ onMounted(() => {
                                 </span>
                             </td>
                             <td>
-                                <span class="text-truncate d-inline-block" style="max-width: 300px;" :title="pista.descripcion">
+                                <span class="text-truncate d-inline-block" style="max-width: 300px;"
+                                    :title="pista.descripcion">
                                     {{ pista.descripcion }}
                                 </span>
                                 <br v-if="pista.observacion">
@@ -435,16 +450,10 @@ onMounted(() => {
                         <li class="page-item" :class="{ disabled: currentPage === 1 }">
                             <button class="page-link" @click="irAPagina(currentPage - 1)">Anterior</button>
                         </li>
-                        <li 
-                            v-for="(page, index) in paginasVisibles" 
-                            :key="index" 
-                            class="page-item"
+                        <li v-for="(page, index) in paginasVisibles" :key="index" class="page-item"
                             :class="{ active: page === currentPage, disabled: page === '...' }">
-                            <button 
-                                class="page-link" 
-                                @click="page !== '...' ? irAPagina(page as number) : null"
-                                :disabled="page === '...'"
-                                :aria-label="page === '...' ? 'Más páginas' : undefined">
+                            <button class="page-link" @click="page !== '...' ? irAPagina(page as number) : null"
+                                :disabled="page === '...'" :aria-label="page === '...' ? 'Más páginas' : undefined">
                                 {{ page }}
                             </button>
                         </li>
