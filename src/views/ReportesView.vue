@@ -376,9 +376,12 @@ const obtenerNombreCliente = (cedula: string): string => {
 
 // Descargar documento del historial
 const descargarDocumento = (doc: DocumentoHistorial) => {
+    // Construir URL completa del backend (la URL relativa /storage/... apunta al frontend, no al backend)
+    const backendUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8000';
     const link = document.createElement('a');
-    link.href = doc.url;
+    link.href = `${backendUrl}${doc.url}`;
     link.setAttribute('download', doc.nombre);
+    link.target = '_blank'; // Abrir en nueva pestaña para evitar problemas de CORS
     document.body.appendChild(link);
     link.click();
     link.remove();
