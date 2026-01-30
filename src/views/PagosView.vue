@@ -202,11 +202,13 @@ const anularPago = async (pago: any) => {
     }
 };
 
-const imprimirComprobante = async (numeroPago: string) => {
-    const confirmed = await showConfirm(
-        '¿Esta seguro de imprimir el pago? Esta acción no se puede deshacer.',
-        'Confirmar impresión'
-    );
+const imprimirComprobante = async (numeroPago: string, isProcesado: boolean = false) => {
+    const mensaje = isProcesado 
+        ? '¿Desea reimprimir el comprobante de pago?'
+        : '¿Desea procesar el pago y generar el comprobante? Esta acción no se puede deshacer.';
+    const titulo = isProcesado ? 'Reimprimir comprobante' : 'Procesar pago';
+    
+    const confirmed = await showConfirm(mensaje, titulo);
     if (!confirmed) return;
 
     try {
@@ -369,9 +371,10 @@ onMounted(() => {
                                         <i class="bi bi-pencil"></i>
                                     </button>
 
-                                    <button v-if="pago.estado" @click="imprimirComprobante(pago.numero_pago)"
-                                        class="btn btn-sm btn-outline-secondary" title="Imprimir Comprobante">
-                                        <i class="bi bi-printer"></i>
+                                    <button v-if="pago.estado" @click="imprimirComprobante(pago.numero_pago, !!pago.fecha_impresion)"
+                                        class="btn btn-sm btn-outline-secondary" 
+                                        :title="pago.fecha_impresion ? 'Imprimir Comprobante' : 'Descargar Comprobante'">
+                                        <i :class="pago.fecha_impresion ? 'bi bi-printer' : 'bi bi-download'"></i>
                                     </button>
 
                                     <button v-if="!pago.fecha_impresion && pago.estado" @click="anularPago(pago)"
