@@ -9,19 +9,25 @@ const router = useRouter();
 const { showSuccess, showError } = useSweetAlert();
 
 const form = ref<Partial<Cuenta>>({
-    codigo: '',
     nombre_cuenta: '',
     descripcion: '',
     id_entidad_bancaria: undefined
 });
 
 const bancos = ref<EntidadBancaria[]>([]);
+const tiposCuenta = ref<string[]>([]);
 const loading = ref(false);
 
 onMounted(async () => {
     try {
-        const response = await api.get('/v1/entidades-bancarias');
-        bancos.value = response.data.data;
+        // Cargar bancos y tipos de cuenta en paralelo
+        const [responseBancos, responseTipos] = await Promise.all([
+            api.get('/v1/entidades-bancarias'),
+            api.get('/v1/tipos-cuenta')
+        ]);
+
+        bancos.value = responseBancos.data.data;
+        tiposCuenta.value = responseTipos.data.data;
     } catch (e) {
         console.error(e);
     }
@@ -64,16 +70,15 @@ const guardar = async () => {
 
 
                         <form @submit.prevent="guardar">
-                            <div class="mb-3">
-                                <label for="codigo" class="form-label fw-bold">Código (Único)</label>
-                                <input id="codigo" v-model="form.codigo" type="text" class="form-control"
-                                    placeholder="Ej: CTA-BAN-001" required />
-                            </div>
 
                             <div class="mb-3">
-                                <label for="nombre" class="form-label fw-bold">Nombre de la Cuenta</label>
-                                <input id="nombre" v-model="form.nombre_cuenta" type="text" class="form-control"
-                                    placeholder="Ej: Cuenta de Ahorros" required />
+                                <label for="nombre" class="form-label fw-bold">Tipo de Cuenta</label>
+                                <select id="nombre" v-model="form.nombre_cuenta" class="form-select" required>
+                                    <option value="" disabled>Seleccione un tipo de cuenta...</option>
+                                    <option v-for="tipo in tiposCuenta" :key="tipo" :value="tipo">
+                                        {{ tipo }}
+                                    </option>
+                                </select>
                             </div>
 
                             <div class="mb-3">
