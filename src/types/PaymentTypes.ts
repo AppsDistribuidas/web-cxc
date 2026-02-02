@@ -18,7 +18,7 @@ export interface Pago {
     cuenta_bancaria?: Cuenta;
     descripcion: string;
     fecha: string;
-  // monto_total se calcula en el frontend si no lo trae el backend
+    // monto_total se calcula en el frontend si no lo trae el backend
     monto_total?: number;
 
     estado: boolean;
