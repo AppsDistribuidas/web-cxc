@@ -17,7 +17,8 @@ const form = ref<PagoPayload>({
     cedula_cliente: '',
     codigo_cuenta: '',
     descripcion: '',
-    detalles: []
+    detalles: [],
+    fecha: new Date().toISOString().slice(0, 10)
 });
 
 // Fecha actual del servidor para mostrar
