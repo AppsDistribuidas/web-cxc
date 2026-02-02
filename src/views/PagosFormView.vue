@@ -21,7 +21,7 @@ const form = ref<PagoPayload>({
     fecha: new Date().toISOString().slice(0, 10)
 });
 
-// Fecha actual del servidor para mostrar
+// Fecha actual obtenida desde el navegador para mostrar
 const fechaActual = ref<string>('');
 
 // Estado UI
