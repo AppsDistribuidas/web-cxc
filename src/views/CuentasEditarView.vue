@@ -117,7 +117,6 @@ const actualizar = async () => {
                                     :value="form.codigo" 
                                     class="form-control bg-light" 
                                     readonly
-                                    tabindex="0"
                                 />
                                 <div class="form-text">
                                     <i class="bi bi-lock-fill me-1"></i>
