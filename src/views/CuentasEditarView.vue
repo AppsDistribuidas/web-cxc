@@ -20,21 +20,26 @@ const form = ref<Partial<Cuenta>>({
 });
 
 const bancos = ref<EntidadBancaria[]>([]);
+const tiposCuenta = ref<string[]>([]);
 const loading = ref(false);
 const submitting = ref(false);
 
 onMounted(async () => {
     loading.value = true;
     try {
-        // 1. Cargar lista de bancos
-        const resBancos = await api.get('/v1/entidades-bancarias');
+        // Cargar todos los datos en paralelo para optimizar el tiempo de carga
+        const [resBancos, resTipos, resCuenta] = await Promise.all([
+            api.get('/v1/entidades-bancarias'),
+            api.get('/v1/tipos-cuenta'),
+            api.get(`/v1/cuentas-bancarias/${idCuenta}`)
+        ]);
+
+        // Asignar datos de bancos y tipos
         bancos.value = resBancos.data.data;
+        tiposCuenta.value = resTipos.data.data;
 
-        // 2. Cargar datos de la cuenta a editar
-        const resCuenta = await api.get(`/v1/cuentas-bancarias/${idCuenta}`);
+        // Rellenar el formulario con los datos de la cuenta
         const data = resCuenta.data.data;
-
-        // Rellenamos el formulario
         form.value = {
             codigo: data.codigo,
             nombre_cuenta: data.nombre_cuenta,
@@ -106,15 +111,27 @@ const actualizar = async () => {
 
                             <div class="mb-3">
                                 <label for="codigo" class="form-label fw-bold">Código</label>
-                                <input id="codigo" v-model="form.codigo" type="text" class="form-control" required
-                                    readonly disabled title="El código no se debe modificar" />
-                                <div class="form-text">El código identificador no se puede cambiar.</div>
+                                <input 
+                                    id="codigo"
+                                    type="text" 
+                                    :value="form.codigo" 
+                                    class="form-control bg-light" 
+                                    readonly
+                                />
+                                <div class="form-text">
+                                    <i class="bi bi-lock-fill me-1"></i>
+                                    El código no se puede modificar.
+                                </div>
                             </div>
 
                             <div class="mb-3">
-                                <label for="nombre" class="form-label fw-bold">Nombre de la Cuenta</label>
-                                <input id="nombre" v-model="form.nombre_cuenta" type="text" class="form-control"
-                                    placeholder="Ej: Cuenta Corriente" required />
+                                <label for="nombre" class="form-label fw-bold">Tipo de Cuenta</label>
+                                <select id="nombre" v-model="form.nombre_cuenta" class="form-select" required>
+                                    <option value="" disabled>Seleccione un tipo de cuenta...</option>
+                                    <option v-for="tipo in tiposCuenta" :key="tipo" :value="tipo">
+                                        {{ tipo }}
+                                    </option>
+                                </select>
                             </div>
 
                             <div class="mb-3">
