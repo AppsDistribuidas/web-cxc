@@ -455,6 +455,57 @@ const validarReporteGeneradoEstado = (): boolean => {
 };
 </script>
 
+<style scoped>
+/* Tema Azul Mejorado */
+.gradient-header {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    border-radius: 12px 12px 0 0;
+}
+
+/* Skeleton Loading Animation - Tono azulado sutil */
+.skeleton-box {
+    display: inline-block;
+    height: 16px;
+    background: linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Card Improvements */
+.card.shadow-sm {
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.card.shadow {
+    border-radius: 12px;
+}
+
+/* Empty State */
+.empty-state svg {
+    opacity: 0.5;
+    color: #0d6efd;
+}
+
+/* Focus */
+.form-control:focus,
+.btn:focus {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    border-color: #86b7fe;
+}
+</style>
+
 <template>
     <div class="container mt-4">
         <h2 class="mb-4">Reportes y Consultas</h2>
@@ -526,8 +577,26 @@ const validarReporteGeneradoEstado = (): boolean => {
                 </div>
             </div>
 
-            <div v-if="pagosLoading" class="text-center py-5">
-                <div class="spinner-border text-primary"></div>
+            <!-- SKELETON LOADING PAGOS -->
+            <div v-if="pagosLoading" class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="skeleton-box mb-3" style="width: 100%; height: 2px;"></div>
+                        </div>
+                    </div>
+                    <div v-for="i in 3" :key="i" class="mb-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <div class="skeleton-box" style="width: 40%;"></div>
+                            <div class="skeleton-box" style="width: 15%;"></div>
+                        </div>
+                        <div class="skeleton-box mb-2" style="width: 60%; height: 12px;"></div>
+                        <div class="ps-4">
+                            <div class="skeleton-box mb-1" style="width: 90%; height: 10px;"></div>
+                            <div class="skeleton-box mb-1" style="width: 80%; height: 10px;"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div v-else-if="pagosResultados.length > 0" class="card border-0 shadow">
@@ -608,8 +677,17 @@ const validarReporteGeneradoEstado = (): boolean => {
                     </nav>
                 </div>
             </div>
-            <div v-else class="alert alert-secondary text-center mt-4">
-                Configure el filtro y presione en Generar para consultar el reporte de pagos.
+            <div v-else class="empty-state text-center py-5">
+                <div class="mb-4">
+                    <svg width="150" height="150" viewBox="0 0 24 24" fill="none" class="text-muted opacity-25"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M9 17h6M9 13h6m-6-4h6M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+                <h5 class="text-muted">No hay resultados</h5>
+                <p class="text-muted small">Configure el filtro y presione "Generar" para consultar los pagos.</p>
             </div>
         </div>
 
@@ -664,21 +742,39 @@ const validarReporteGeneradoEstado = (): boolean => {
                 </div>
             </div>
 
-            <div v-if="estadoCuentaLoading" class="text-center py-5">
-                <div class="spinner-border text-primary"></div>
+            <!-- SKELETON LOADING ESTADO DE CUENTA -->
+            <div v-if="estadoCuentaLoading" class="card border-0 shadow-sm mt-4">
+                <div class="card-header bg-white border-bottom-0 pt-4">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <div class="skeleton-box mb-2" style="width: 200px; height: 24px;"></div>
+                            <div class="skeleton-box" style="width: 120px; height: 14px;"></div>
+                        </div>
+                        <div class="skeleton-box" style="width: 150px; height: 14px;"></div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="skeleton-box mb-4" style="width: 100%; height: 80px; border-radius: 8px;"></div>
+                    <div class="skeleton-box mb-3" style="width: 300px; height: 35px;"></div>
+                    <div v-for="i in 5" :key="i" class="d-flex justify-content-between mb-3 border-bottom pb-2">
+                        <div class="skeleton-box" style="width: 20%;"></div>
+                        <div class="skeleton-box" style="width: 40%;"></div>
+                        <div class="skeleton-box" style="width: 30%;"></div>
+                    </div>
+                </div>
             </div>
 
-            <div v-else-if="estadoCuentaData" class="card border-0 shadow">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+            <div v-else-if="estadoCuentaData" class="card border-0 shadow mt-4">
+                <div class="card-header gradient-header text-white pt-4 pb-3 border-0">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <h3 class="fw-bold text-primary">{{ estadoCuentaData.cliente }}</h3>
-                            <p class="text-muted mb-0">C.I. {{ estadoCuentaData.cedula }}</p>
-                            <small class="text-muted">Período: {{ estadoCuentaData.periodo?.desde }} al {{
+                            <h3 class="fw-normal mb-1">{{ estadoCuentaData.cliente }}</h3>
+                            <p class="mb-0 opacity-75">C.I. {{ estadoCuentaData.cedula }}</p>
+                            <small class="opacity-75">Período: {{ estadoCuentaData.periodo?.desde }} al {{
                                 estadoCuentaData.periodo?.hasta }}</small>
                         </div>
                         <div class="text-end">
-                            <small class="text-muted">Generado: {{ estadoCuentaData.fecha_generacion }}</small>
+                            <small class="opacity-75">Generado: {{ estadoCuentaData.fecha_generacion }}</small>
                         </div>
                     </div>
                 </div>
@@ -877,8 +973,17 @@ const validarReporteGeneradoEstado = (): boolean => {
                 </div>
             </div>
 
-            <div v-else class="alert alert-secondary text-center mt-4">
-                Configure el filtro y presione en Generar para consultar el estado de cuenta.
+            <div v-else class="empty-state text-center py-5">
+                <div class="mb-4">
+                    <svg width="150" height="150" viewBox="0 0 24 24" fill="none" class="text-muted opacity-25"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M9 17h6M9 13h6m-6-4h6M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+                <h5 class="text-muted">Estado de Cuenta</h5>
+                <p class="text-muted small">Seleccione un cliente y rango de fechas para generar el reporte.</p>
             </div>
         </div>
     </div>
