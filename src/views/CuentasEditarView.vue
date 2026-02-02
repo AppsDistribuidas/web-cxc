@@ -110,10 +110,15 @@ const actualizar = async () => {
                         <form @submit.prevent="actualizar">
 
                             <div class="mb-3">
-                                <label class="form-label fw-bold">Código</label>
-                                <div class="form-control bg-light" style="cursor: not-allowed;">
-                                    {{ form.codigo }}
-                                </div>
+                                <label for="codigo" class="form-label fw-bold">Código</label>
+                                <input 
+                                    id="codigo"
+                                    type="text" 
+                                    :value="form.codigo" 
+                                    class="form-control bg-light" 
+                                    readonly
+                                    tabindex="0"
+                                />
                                 <div class="form-text">
                                     <i class="bi bi-lock-fill me-1"></i>
                                     El código no se puede modificar.
