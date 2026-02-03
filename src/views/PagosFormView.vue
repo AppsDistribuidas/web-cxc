@@ -37,6 +37,52 @@ const fechaImpresion = ref<string | null>(null);
 const cedulaInput = ref('');
 const selectedClientName = ref('');
 
+// Cuenta bancaria input helper
+const cuentaInput = ref('');
+const selectedCuentaInfo = ref('');
+
+// Computed para filtrar cuentas bancarias
+const filteredCuentas = computed(() => {
+    if (!cuentaInput.value) return cuentas.value.slice(0, 10);
+
+    const busqueda = cuentaInput.value.toLowerCase();
+    return cuentas.value.filter(c =>
+        c.codigo.toLowerCase().includes(busqueda) ||
+        (c.entidad_bancaria?.nombre || '').toLowerCase().includes(busqueda)
+    ).slice(0, 10);
+});
+
+// Seleccionar cuenta por código o nombre de banco
+const seleccionarCuenta = () => {
+    const v = (cuentaInput.value || '').toString().trim();
+    if (!v) {
+        form.value.codigo_cuenta = '';
+        selectedCuentaInfo.value = '';
+        return;
+    }
+
+    // Buscar por código exacto
+    const found = cuentas.value.find(c => c.codigo === v);
+    if (found) {
+        form.value.codigo_cuenta = found.codigo;
+        selectedCuentaInfo.value = found.entidad_bancaria?.nombre || '';
+        return;
+    }
+
+    // Buscar por nombre de banco
+    const byBank = cuentas.value.find(c =>
+        (c.entidad_bancaria?.nombre || '').toLowerCase().includes(v.toLowerCase())
+    );
+    if (byBank) {
+        form.value.codigo_cuenta = byBank.codigo;
+        cuentaInput.value = byBank.codigo;
+        selectedCuentaInfo.value = byBank.entidad_bancaria?.nombre || '';
+        return;
+    }
+
+    selectedCuentaInfo.value = '';
+};
+
 // Computed para filtrar la lista de clientes sugeridos
 const filteredClientes = computed(() => {
     if (!cedulaInput.value) return clientesDisponibles.value.slice(0, 10);
@@ -183,6 +229,15 @@ const getSaldoRestante = (factura: any) => {
     return Number(factura.saldo_pendiente) - monto;
 };
 
+// Pagar total de una factura (setear monto al saldo pendiente)
+const pagarTotalFactura = (factura: any) => {
+    const key = unformatNumeroFactura(factura.numero_factura);
+    const item = facturasConSeleccion.value.get(key);
+    if (item) {
+        item.monto = Number(factura.saldo_pendiente);
+    }
+};
+
 // Verificar si el monto excede el saldo
 const montoExcedeSaldo = (factura: any) => {
     const key = unformatNumeroFactura(factura.numero_factura);
@@ -314,14 +369,10 @@ onMounted(async () => {
             cedulaInput.value = data.nombre_cliente ? `${data.cedula_cliente}` : data.cedula_cliente;
             selectedClientName.value = data.nombre_cliente ?? '';
 
-            // Mostrar la fecha del pago existente en modo edición
-            if (data.fecha) {
-                fechaActual.value = new Date(data.fecha).toLocaleDateString('es-EC', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-            }
+            // Rellenamos el input visual de cuenta bancaria
+            cuentaInput.value = data.codigo_cuenta;
+            const cuentaEncontrada = cuentas.value.find(c => c.codigo === data.codigo_cuenta);
+            selectedCuentaInfo.value = cuentaEncontrada?.entidad_bancaria?.nombre ?? '';
 
             // Cargamos facturas manualmente porque el watch fue bloqueado
             // Pasamos el numero_pago para excluir este pago del cálculo de saldo
@@ -471,24 +522,48 @@ const guardar = async () => {
             <div class="col-lg-10">
                 <div class="card shadow border-0">
                     <div
-                        class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
+                        class="card-header gradient-header text-white py-3 d-flex justify-content-between align-items-center">
                         <h4 class="mb-0 fw-normal">
                             {{ isEditing ? 'Editar Pago' : 'Registrar Nuevo Pago' }}
                         </h4>
                         <div v-if="isEditing">
-                            <span class="badge bg-white text-primary me-2">{{ route.params.numero_pago }}</span>
+                            <span class="badge bg-white text-dark me-2">{{ route.params.numero_pago }}</span>
                         </div>
                     </div>
 
                     <div class="card-body p-4">
-                        <div v-if="loading" class="text-center py-4">
-                            <span class="spinner-border text-primary"></span>
+                        <!-- Skeleton Loading -->
+                        <div v-if="loading" class="skeleton-form">
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-4">
+                                    <div class="skeleton-box mb-2" style="width: 60px; height: 14px;"></div>
+                                    <div class="skeleton-box" style="width: 100%; height: 38px;"></div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="skeleton-box mb-2" style="width: 80px; height: 14px;"></div>
+                                    <div class="skeleton-box" style="width: 100%; height: 38px;"></div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="skeleton-box mb-2" style="width: 100px; height: 14px;"></div>
+                                    <div class="skeleton-box" style="width: 100%; height: 38px;"></div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="skeleton-box mb-2" style="width: 120px; height: 14px;"></div>
+                                    <div class="skeleton-box" style="width: 100%; height: 38px;"></div>
+                                </div>
+                            </div>
+                            <hr class="my-4">
+                            <div class="skeleton-box mb-3" style="width: 200px; height: 20px;"></div>
+                            <div class="skeleton-box mb-2" style="width: 100%; height: 60px;"></div>
+                            <div class="skeleton-box mb-2" style="width: 100%; height: 60px;"></div>
+                            <div class="skeleton-box" style="width: 100%; height: 60px;"></div>
                         </div>
 
                         <form v-else @submit.prevent="guardar">
                             <div class="row g-3 mb-4">
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold">Cliente</label>
+                                    <label class="form-label fw-bold"><i
+                                            class="bi bi-person-fill me-1"></i>Cliente</label>
                                     <!-- Input libre para poder escribir la cédula y autoseleccionar -->
                                     <input v-model="cedulaInput" @keyup.enter="seleccionarClientePorCedula"
                                         @blur="seleccionarClientePorCedula" list="clientesList" type="text"
@@ -508,24 +583,32 @@ const guardar = async () => {
                                 </div>
 
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold">Fecha Pago</label>
-                                    <div class="form-control bg-light" style="cursor: not-allowed;">
-                                        {{ fechaActual || 'Cargando...' }}
-                                    </div>
+                                    <label class="form-label fw-bold"><i class="bi bi-calendar-event me-1"></i>Fecha
+                                        Pago</label>
+                                    <input v-model="form.fecha" type="date" class="form-control" required>
                                 </div>
 
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold">Cuenta Bancaria</label>
-                                    <select v-model="form.codigo_cuenta" class="form-select" required>
-                                        <option value="" disabled>Seleccione cuenta...</option>
-                                        <option v-for="cta in cuentas" :key="cta.codigo" :value="cta.codigo">
-                                            {{ cta.codigo }} ({{ cta.entidad_bancaria?.nombre }})
+                                    <label class="form-label fw-bold"><i class="bi bi-bank me-1"></i>Cuenta
+                                        Bancaria</label>
+                                    <input v-model="cuentaInput" @keyup.enter="seleccionarCuenta"
+                                        @blur="seleccionarCuenta" list="cuentasList" type="text" class="form-control"
+                                        placeholder="Buscar cuenta o banco..." required />
+
+                                    <datalist id="cuentasList">
+                                        <option v-for="cta in filteredCuentas" :key="cta.codigo" :value="cta.codigo">
+                                            {{ cta.entidad_bancaria?.nombre }}
                                         </option>
-                                    </select>
+                                    </datalist>
+
+                                    <div v-if="selectedCuentaInfo" class="form-text text-muted mt-1">Banco:
+                                        <strong>{{ selectedCuentaInfo }}</strong>
+                                    </div>
                                 </div>
 
                                 <div class="col-12">
-                                    <label class="form-label">Descripción / Notas</label>
+                                    <label class="form-label fw-bold"><i class="bi bi-card-text me-1"></i>Descripción /
+                                        Notas</label>
                                     <input v-model="form.descripcion" type="text" class="form-control"
                                         placeholder="Opcional">
                                 </div>
@@ -644,6 +727,12 @@ const guardar = async () => {
                                                                 @input="actualizarMonto(factura.numero_factura, Number(($event.target as HTMLInputElement).value))"
                                                                 :class="{ 'is-invalid': montoExcedeSaldo(factura) }"
                                                                 :disabled="!isFacturaSeleccionada(factura.numero_factura)">
+                                                            <button type="button" class="btn btn-outline-success btn-sm"
+                                                                title="Pagar saldo completo"
+                                                                @click="pagarTotalFactura(factura)"
+                                                                :disabled="!isFacturaSeleccionada(factura.numero_factura)">
+                                                                <i class="bi bi-arrow-up-circle"></i>
+                                                            </button>
                                                         </div>
                                                         <div v-if="montoExcedeSaldo(factura)" class="text-danger small">
                                                             Excede el saldo
@@ -673,7 +762,7 @@ const guardar = async () => {
                                     </div>
 
                                     <!-- Resumen Total -->
-                                    <div class="card bg-primary text-white mt-3">
+                                    <div class="card gradient-header text-white mt-3 shadow">
                                         <div class="card-body py-3 d-flex justify-content-between align-items-center">
                                             <div>
                                                 <i class="bi bi-cash-stack me-2"></i>
@@ -692,11 +781,13 @@ const guardar = async () => {
                                     class="bi bi-exclamation-circle me-1"></i> {{ error }}</div>
 
                             <div class="d-flex justify-content-end gap-2 mt-4">
-                                <button type="button" @click="router.push('/pagos')"
-                                    class="btn btn-outline-secondary">Cancelar</button>
+                                <button type="button" @click="router.push('/pagos')" class="btn btn-outline-secondary">
+                                    <i class="bi bi-x-lg me-1"></i>Cancelar
+                                </button>
                                 <button type="submit" class="btn btn-success px-4"
                                     :disabled="saving || cantidadSeleccionadas === 0">
                                     <span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>
+                                    <i v-else class="bi bi-check-lg me-1"></i>
                                     {{ isEditing ? 'Actualizar Pago' : 'Finalizar Pago' }}
                                 </button>
                             </div>
@@ -707,3 +798,85 @@ const guardar = async () => {
         </div>
     </div>
 </template>
+
+<style scoped>
+/* Gradiente Azul Mejorado */
+.gradient-header {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+}
+
+/* Transiciones suaves en cards de facturas */
+.facturas-container .card {
+    transition: all 0.2s ease;
+    border: 1px solid #dee2e6;
+}
+
+.facturas-container .card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+    border-color: #bbd6fe;
+}
+
+.facturas-container .card.border-success {
+    border-color: #0d6efd !important;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.04) 0%, rgba(10, 88, 202, 0.04) 100%);
+}
+
+/* Mejora visual del input de monto */
+.input-group-sm .form-control:focus {
+    box-shadow: none;
+    border-color: #0d6efd;
+}
+
+/* Botón pagar total - Adaptado al tema azul */
+.btn-outline-success.btn-sm {
+    border-left: 0;
+    color: #0d6efd;
+    border-color: #dee2e6;
+}
+
+.btn-outline-success.btn-sm:hover {
+    background: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+
+/* Skeleton loading animation - Azulado muy sutil */
+.skeleton-box {
+    display: inline-block;
+    height: 16px;
+    background: linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Focus visible para accesibilidad */
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Card principal */
+.card.shadow {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.card-header.gradient-header {
+    border-radius: 0;
+}
+</style>

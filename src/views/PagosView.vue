@@ -42,6 +42,36 @@ const filterEstado = ref('');  // '' = default (exclude inactive)
 const filterFecha = ref('');   // fecha exacta
 const filterMonto = ref('');   // monto exacto
 
+// Selección múltiple para impresión masiva
+const selectedPagos = ref<Set<string>>(new Set());
+
+// Computed: verificar si todos están seleccionados
+const allSelected = computed(() => {
+    if (pagos.value.length === 0) return false;
+    return pagos.value.every(p => selectedPagos.value.has(p.numero_pago));
+});
+
+// Computed: cantidad de seleccionados
+const selectedCount = computed(() => selectedPagos.value.size);
+
+// Toggle seleccionar todos
+const toggleSelectAll = () => {
+    if (allSelected.value) {
+        selectedPagos.value.clear();
+    } else {
+        pagos.value.forEach(p => selectedPagos.value.add(p.numero_pago));
+    }
+};
+
+// Toggle selección individual
+const toggleSelect = (numeroPago: string) => {
+    if (selectedPagos.value.has(numeroPago)) {
+        selectedPagos.value.delete(numeroPago);
+    } else {
+        selectedPagos.value.add(numeroPago);
+    }
+};
+
 // Computed property for smart pagination
 const paginationRange = computed(() => {
     const totalPages = lastPage.value;
@@ -227,6 +257,43 @@ const imprimirComprobante = async (numeroPago: string, isProcesado: boolean = fa
     }
 };
 
+// Impresión masiva
+const imprimirMasivo = async () => {
+    if (selectedCount.value === 0) {
+        await showError('Seleccione al menos un pago para imprimir.');
+        return;
+    }
+
+    const cantidadSeleccionada = selectedCount.value;
+
+    const confirmed = await showConfirm(
+        `¿Imprimir ${cantidadSeleccionada} comprobante(s)? Esta acción marcará los pagos como procesados.`,
+        'Confirmar impresión masiva'
+    );
+    if (!confirmed) return;
+
+    try {
+        const response = await api.post('/v1/pagos/imprimir', {
+            numeros_pago: Array.from(selectedPagos.value)
+        }, { responseType: 'blob' });
+
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'Comprobantes.zip');
+        document.body.appendChild(link);
+        link.click();
+
+        selectedPagos.value.clear();
+        await showSuccess(`Se imprimieron ${cantidadSeleccionada} comprobante(s) correctamente.`);
+        obtenerPagos(currentPage.value);
+    } catch (e: any) {
+        if (e.response?.status === 401) return;
+        await showError('Error al imprimir los comprobantes.');
+    }
+};
+
+
 // Debounce filters
 let timeout: ReturnType<typeof setTimeout>;
 watch([filterNumeroPago, filterCedula, filterCuenta, filterEstado, filterFecha, filterMonto], () => {
@@ -267,7 +334,7 @@ onMounted(() => {
             </div>
 
             <button @click="router.push('/pagos/crear')" class="btn btn-primary shadow-sm">
-                <i class="bi bi-plus-lg"></i> Nuevo Pago
+                <i class="bi bi-plus-lg me-1"></i> Nuevo Pago
             </button>
         </div>
 
@@ -281,6 +348,11 @@ onMounted(() => {
                         </div>
                     </div>
                     <div class="col-md-8 text-end">
+                        <button v-if="selectedCount > 0" @click="imprimirMasivo"
+                            class="btn btn-success btn-sm me-2 shadow-sm">
+                            <i class="bi bi-printer-fill me-1"></i>
+                            Imprimir {{ selectedCount }} seleccionado(s)
+                        </button>
                         <button @click="obtenerPagos(currentPage)" class="btn btn-outline-secondary btn-sm"
                             title="Actualizar">
                             <i class="bi bi-arrow-clockwise"></i> Refrescar
@@ -290,10 +362,52 @@ onMounted(() => {
             </div>
         </div>
 
-        <!-- Loading -->
-        <div v-if="loading" class="text-center py-5">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted">Cargando pagos...</p>
+        <!-- Loading Skeleton -->
+        <div v-if="loading" class="card shadow-sm border-0">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th style="width: 40px"></th>
+                            <th style="width: 80px"></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="i in 5" :key="i">
+                            <td>
+                                <div class="skeleton-box" style="width: 20px; height: 20px;"></div>
+                            </td>
+                            <td>
+                                <div class="skeleton-box" style="width: 60px;"></div>
+                            </td>
+                            <td>
+                                <div class="skeleton-box" style="width: 120px;"></div>
+                            </td>
+                            <td>
+                                <div class="skeleton-box" style="width: 100px;"></div>
+                            </td>
+                            <td>
+                                <div class="skeleton-box" style="width: 80px;"></div>
+                            </td>
+                            <td>
+                                <div class="skeleton-box" style="width: 80px;"></div>
+                            </td>
+                            <td>
+                                <div class="skeleton-box" style="width: 70px;"></div>
+                            </td>
+                            <td>
+                                <div class="skeleton-box" style="width: 70px;"></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Error -->
@@ -307,14 +421,18 @@ onMounted(() => {
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light text-secondary">
                         <tr>
+                            <th class="text-center" style="width: 40px;">
+                                <input type="checkbox" class="form-check-input" :checked="allSelected"
+                                    @change="toggleSelectAll" title="Seleccionar todos">
+                            </th>
                             <th class="text-center ps-3">Acciones</th>
                             <th @click="toggleSort('numero_pago')" class="ps-4 fw-bold" style="cursor:pointer">
                                 No. Pago <small v-if="sortBy === 'numero_pago'">{{ sortOrder === 'asc' ? '▲' : '▼'
-                                }}</small>
+                                    }}</small>
                             </th>
                             <th @click="toggleSort('cedula_cliente')" class="fw-bold" style="cursor:pointer">
                                 Cliente <small v-if="sortBy === 'cedula_cliente'">{{ sortOrder === 'asc' ? '▲' : '▼'
-                                }}</small>
+                                    }}</small>
                             </th>
                             <th class="text-center fw-bold">Cuenta</th>
                             <th @click="toggleSort('fecha')" class="fw-bold" style="cursor:pointer">
@@ -325,6 +443,7 @@ onMounted(() => {
                         </tr>
                         <!-- Filter row -->
                         <tr class="bg-white">
+                            <th></th>
                             <th class="text-center">
                                 <button @click="limpiarFiltros" class="btn btn-sm btn-outline-secondary"
                                     title="Limpiar filtros">
@@ -362,7 +481,13 @@ onMounted(() => {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="pago in pagos" :key="pago.numero_pago">
+                        <tr v-for="pago in pagos" :key="pago.numero_pago"
+                            :class="{ 'table-primary': selectedPagos.has(pago.numero_pago) }">
+                            <td class="text-center">
+                                <input type="checkbox" class="form-check-input"
+                                    :checked="selectedPagos.has(pago.numero_pago)"
+                                    @change="toggleSelect(pago.numero_pago)">
+                            </td>
                             <td class="text-center ps-3">
                                 <div class="btn-group">
                                     <button v-if="!pago.fecha_impresion && pago.estado"
@@ -407,9 +532,17 @@ onMounted(() => {
                             </td>
                         </tr>
                         <tr v-if="pagos.length === 0">
-                            <td colspan="7" class="text-center py-5 text-muted">
-                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                                No se encontraron pagos registrados.
+                            <td colspan="8" class="text-center py-5">
+                                <div class="empty-state">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="currentColor"
+                                        class="bi bi-file-earmark-ruled text-muted mb-3" viewBox="0 0 16 16">
+                                        <path
+                                            d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V9H3V2a1 1 0 0 1 1-1h5.5zM3 12v-2h2v2zm0 1h2v2H4a1 1 0 0 1-1-1zm3 2v-2h7v1a1 1 0 0 1-1 1zm7-3H6v-2h7z" />
+                                    </svg>
+                                    <h5 class="text-muted mb-2">No hay pagos registrados</h5>
+                                    <p class="text-secondary small mb-3">Comienza registrando el primer pago de un
+                                        cliente</p>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -456,7 +589,73 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* Botón primario mejorado */
+.btn-primary {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.35);
+}
+
 .table-hover tbody tr:hover {
-    background-color: rgba(0, 0, 0, .02);
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+/* Skeleton Loading Animation */
+.skeleton-box {
+    display: inline-block;
+    height: 16px;
+    background: linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Empty State */
+.empty-state {
+    padding: 2rem;
+}
+
+.empty-state svg {
+    opacity: 0.6;
+}
+
+/* Selected row highlight */
+.table-primary {
+    --bs-table-bg: rgba(13, 110, 253, 0.08);
+}
+
+/* Card con bordes redondeados */
+.card {
+    border-radius: 10px;
+}
+
+/* Barra de info con borde lateral azul */
+.card.bg-light {
+    border-left: 4px solid #0d6efd;
+    background: linear-gradient(90deg, rgba(13, 110, 253, 0.03) 0%, #f8f9fa 100%) !important;
+}
+
+/* Tabla header con gradiente azul sutil */
+thead.bg-light {
+    background: linear-gradient(180deg, #e7f1ff 0%, #f8f9fa 100%) !important;
+}
+
+thead.bg-light th {
+    border-bottom: 2px solid #0d6efd;
 }
 </style>
