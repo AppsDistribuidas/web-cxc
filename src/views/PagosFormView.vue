@@ -17,9 +17,12 @@ const form = ref<PagoPayload>({
     cedula_cliente: '',
     codigo_cuenta: '',
     descripcion: '',
-    fecha: new Date().toISOString().split('T')[0] ?? '',
-    detalles: []
+    detalles: [],
+    fecha: new Date().toISOString().slice(0, 10)
 });
+
+// Fecha actual obtenida desde el navegador para mostrar
+const fechaActual = ref<string>('');
 
 // Estado UI
 const cuentas = ref<Cuenta[]>([]);
@@ -309,9 +312,16 @@ watch(clientesDisponibles, () => {
 onMounted(async () => {
     loading.value = true;
     try {
+        // Establecer fecha actual para mostrar
+        fechaActual.value = new Date().toLocaleDateString('es-EC', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
         await Promise.all([
             cargarClientes(),
-            api.get('/v1/cuentas-bancarias').then(r => cuentas.value = r.data.data.filter((c: Cuenta) => c.estado))
+            api.get('/v1/cuentas-bancarias?all=true').then(r => cuentas.value = r.data.data.filter((c: Cuenta) => c.estado))
         ]);
 
         if (isEditing.value) {
@@ -342,7 +352,6 @@ onMounted(async () => {
                 cedula_cliente: data.cedula_cliente,
                 codigo_cuenta: data.codigo_cuenta,
                 descripcion: data.descripcion,
-                fecha: fechaLimpia,
                 detalles: (data.detalles || []).map((d: any) => {
                     const montoFromBackend = d.monto_pagado ?? d.monto_pagar ?? d.monto ?? 0;
                     return {
