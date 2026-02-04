@@ -510,68 +510,98 @@ const validarReporteGeneradoEstado = (): boolean => {
     <div class="container mt-4">
         <h2 class="mb-4">Reportes y Consultas</h2>
 
-        <ul class="nav nav-tabs mb-4">
-            <li v-if="can('Reporte de Pagos')" class="nav-item">
+        <ul class="nav nav-tabs mb-4" role="tablist">
+            <li v-if="can('Reporte de Pagos')" class="nav-item" role="presentation">
                 <a class="nav-link" :class="{ active: activeTab === 'pagos' }" href="#"
-                    @click.prevent="activeTab = 'pagos'">
+                    @click.prevent="activeTab = 'pagos'"
+                    role="tab" :aria-selected="activeTab === 'pagos'"
+                    aria-controls="panel-pagos" id="tab-pagos">
+                    <i class="bi bi-receipt me-1" aria-hidden="true"></i>
                     Reporte de Pagos
                 </a>
             </li>
-            <li v-if="can('Reporte Estado de Cuenta')" class="nav-item">
+            <li v-if="can('Reporte Estado de Cuenta')" class="nav-item" role="presentation">
                 <a class="nav-link" :class="{ active: activeTab === 'estadoCuenta' }" href="#"
-                    @click.prevent="activeTab = 'estadoCuenta'">
+                    @click.prevent="activeTab = 'estadoCuenta'"
+                    role="tab" :aria-selected="activeTab === 'estadoCuenta'"
+                    aria-controls="panel-estado" id="tab-estado">
+                    <i class="bi bi-file-earmark-bar-graph me-1" aria-hidden="true"></i>
                     Estado de Cuenta
                 </a>
             </li>
         </ul>
 
         <!-- CONTENIDO PESTAÑA: PAGOS -->
-        <div v-if="activeTab === 'pagos' && can('Reporte de Pagos')">
+        <div v-if="activeTab === 'pagos' && can('Reporte de Pagos')" 
+            id="panel-pagos" role="tabpanel" aria-labelledby="tab-pagos">
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
                     <div class="row g-3 align-items-end">
-                        <div class="col-md-4">
-                            <label class="form-label invisible">Acciones</label>
-                            <div class="d-flex gap-2">
-                                <button @click="abrirHistorial('pagos')" class="btn btn-outline-secondary"
-                                    title="Ver historial de documentos">
-                                    <i class="bi bi-folder2-open"></i>
-                                </button>
-                                <button @click="validarReporteGeneradoPagos() && generarReportePagos('pdf')"
-                                    class="btn btn-danger" :disabled="pagosLoading">
-                                    <i class="bi bi-file-pdf"></i> PDF
-                                </button>
-                                <button @click="generarReportePagos('json')" class="btn btn-primary flex-grow-1"
-                                    :disabled="pagosLoading">
-                                    <i class="bi bi-lightning-charge"></i> Generar
-                                </button>
-                            </div>
-                            <div class="form-text invisible">Placeholder</div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Buscar Cliente (Nombre o Cédula) - Opcional</label>
+                        <!-- Campos de filtro primero -->
+                        <div class="col-12 col-md-4">
+                            <label class="form-label fw-bold" for="pagosCliente">
+                                <i class="bi bi-person me-1" aria-hidden="true"></i>
+                                Buscar Cliente (Opcional)
+                            </label>
                             <input v-model="pagosAutocompletar" list="dlPagosUniforme" class="form-control"
-                                placeholder="Escriba para buscar..." @change="seleccionarClientePagos"
-                                @blur="seleccionarClientePagos">
+                                id="pagosCliente"
+                                placeholder="Escriba cédula o nombre..." 
+                                @change="seleccionarClientePagos"
+                                @blur="seleccionarClientePagos"
+                                aria-label="Buscar cliente por nombre o cédula"
+                                title="Deje vacío para incluir todos los clientes, o busque uno específico">
                             <datalist id="dlPagosUniforme">
                                 <option v-for="c in filteredClientesPagosUniforme" :key="c.cedula" :value="c.cedula">{{
                                     c.nombre }}</option>
                             </datalist>
                             <div class="form-text"
-                                :class="nombreClienteSeleccionadoPagos ? 'text-primary' : 'invisible'">
-                                <i class="bi bi-person-check me-1"></i>{{ nombreClienteSeleccionadoPagos ||
-                                    'Placeholder' }}
+                                :class="nombreClienteSeleccionadoPagos ? 'text-primary' : 'text-muted'">
+                                <i class="bi bi-person-check me-1" v-if="nombreClienteSeleccionadoPagos" aria-hidden="true"></i>
+                                {{ nombreClienteSeleccionadoPagos || 'Todos los clientes' }}
                             </div>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label fw-bold">Fecha Inicio</label>
-                            <input v-model="pagosFilter.fecha_inicio" type="date" class="form-control">
-                            <div class="form-text invisible">Placeholder</div>
+                        <div class="col-6 col-md-2">
+                            <label class="form-label fw-bold" for="pagosFechaInicio">
+                                <i class="bi bi-calendar me-1" aria-hidden="true"></i>
+                                Fecha Inicio
+                            </label>
+                            <input v-model="pagosFilter.fecha_inicio" type="date" class="form-control"
+                                id="pagosFechaInicio"
+                                aria-label="Fecha de inicio del reporte"
+                                title="Fecha desde la cual se incluirán los pagos">
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label fw-bold">Fecha Fin</label>
-                            <input v-model="pagosFilter.fecha_fin" type="date" class="form-control">
-                            <div class="form-text invisible">Placeholder</div>
+                        <div class="col-6 col-md-2">
+                            <label class="form-label fw-bold" for="pagosFechaFin">
+                                <i class="bi bi-calendar me-1" aria-hidden="true"></i>
+                                Fecha Fin
+                            </label>
+                            <input v-model="pagosFilter.fecha_fin" type="date" class="form-control"
+                                id="pagosFechaFin"
+                                aria-label="Fecha de fin del reporte"
+                                title="Fecha hasta la cual se incluirán los pagos">
+                        </div>
+                        <!-- Botones de acción al final -->
+                        <div class="col-12 col-md-4">
+                            <label class="form-label invisible d-none d-md-block">Acciones</label>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button @click="abrirHistorial('pagos')" class="btn btn-outline-secondary"
+                                    title="Ver historial de reportes de pagos generados anteriormente"
+                                    aria-label="Ver historial de documentos">
+                                    <i class="bi bi-folder2-open" aria-hidden="true"></i>
+                                </button>
+                                <button @click="validarReporteGeneradoPagos() && generarReportePagos('pdf')"
+                                    class="btn btn-danger" :disabled="pagosLoading"
+                                    title="Descargar el reporte en formato PDF"
+                                    aria-label="Descargar reporte de pagos en PDF">
+                                    <i class="bi bi-file-pdf" aria-hidden="true"></i> PDF
+                                </button>
+                                <button @click="generarReportePagos('json')" class="btn btn-primary flex-grow-1"
+                                    :disabled="pagosLoading"
+                                    title="Generar y visualizar el reporte de pagos"
+                                    aria-label="Generar reporte de pagos">
+                                    <i class="bi bi-lightning-charge" aria-hidden="true"></i> Generar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -692,51 +722,77 @@ const validarReporteGeneradoEstado = (): boolean => {
         </div>
 
         <!-- CONTENIDO PESTAÑA: ESTADO DE CUENTA -->
-        <div v-if="activeTab === 'estadoCuenta' && can('Reporte Estado de Cuenta')">
+        <div v-if="activeTab === 'estadoCuenta' && can('Reporte Estado de Cuenta')"
+            id="panel-estado" role="tabpanel" aria-labelledby="tab-estado">
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
                     <div class="row g-3 align-items-end">
-                        <div class="col-md-4">
-                            <label class="form-label invisible">Acciones</label>
-                            <div class="d-flex gap-2">
-                                <button @click="abrirHistorial('estados-cuenta')" class="btn btn-outline-secondary"
-                                    title="Ver historial de documentos">
-                                    <i class="bi bi-folder2-open"></i>
-                                </button>
-                                <button @click="validarReporteGeneradoEstado() && generarEstadoCuenta('pdf')"
-                                    class="btn btn-danger"
-                                    :disabled="estadoCuentaLoading || !estadoCuentaFilter.cedula_cliente">
-                                    <i class="bi bi-file-pdf"></i> PDF
-                                </button>
-                                <button @click="generarEstadoCuenta('json')" class="btn btn-primary flex-grow-1"
-                                    :disabled="estadoCuentaLoading || !estadoCuentaFilter.cedula_cliente">
-                                    <i class="bi bi-lightning-charge"></i> Generar
-                                </button>
-                            </div>
-                            <div class="form-text invisible">Placeholder</div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Buscar Cliente (Nombre o Cédula)</label>
+                        <!-- Campo de cliente primero (requerido) -->
+                        <div class="col-12 col-md-4">
+                            <label class="form-label fw-bold" for="estadoCliente">
+                                <i class="bi bi-person-fill me-1" aria-hidden="true"></i>
+                                Cliente <span class="text-danger">*</span>
+                            </label>
                             <input v-model="estadoCuentaAutocompletar" list="dlEstado" class="form-control"
-                                placeholder="Escriba para buscar..." @change="seleccionarClienteEstado"
-                                @blur="seleccionarClienteEstado">
+                                id="estadoCliente"
+                                placeholder="Escriba cédula o nombre..." 
+                                @change="seleccionarClienteEstado"
+                                @blur="seleccionarClienteEstado"
+                                aria-label="Buscar cliente por nombre o cédula (requerido)"
+                                title="Seleccione el cliente para generar su estado de cuenta"
+                                :aria-invalid="!estadoCuentaFilter.cedula_cliente">
                             <datalist id="dlEstado">
                                 <option v-for="c in filteredClientesEstado" :key="c.cedula" :value="c.cedula">{{
                                     c.nombre }}</option>
                             </datalist>
-                            <div class="form-text" :class="nombreClienteSeleccionado ? 'text-primary' : 'invisible'">
-                                <i class="bi bi-person-check me-1"></i>{{ nombreClienteSeleccionado || 'Placeholder' }}
+                            <div class="form-text" :class="nombreClienteSeleccionado ? 'text-primary' : 'text-danger'">
+                                <i :class="nombreClienteSeleccionado ? 'bi bi-person-check' : 'bi bi-exclamation-circle'" class="me-1" aria-hidden="true"></i>
+                                {{ nombreClienteSeleccionado || 'Seleccione un cliente' }}
                             </div>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label fw-bold">Fecha Inicio</label>
-                            <input v-model="estadoCuentaFilter.fecha_inicio" type="date" class="form-control">
-                            <div class="form-text invisible">Placeholder</div>
+                        <div class="col-6 col-md-2">
+                            <label class="form-label fw-bold" for="estadoFechaInicio">
+                                <i class="bi bi-calendar me-1" aria-hidden="true"></i>
+                                Fecha Inicio
+                            </label>
+                            <input v-model="estadoCuentaFilter.fecha_inicio" type="date" class="form-control"
+                                id="estadoFechaInicio"
+                                aria-label="Fecha de inicio del estado de cuenta"
+                                title="Período desde el cual se incluirán los movimientos">
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label fw-bold">Fecha Fin</label>
-                            <input v-model="estadoCuentaFilter.fecha_fin" type="date" class="form-control">
-                            <div class="form-text invisible">Placeholder</div>
+                        <div class="col-6 col-md-2">
+                            <label class="form-label fw-bold" for="estadoFechaFin">
+                                <i class="bi bi-calendar me-1" aria-hidden="true"></i>
+                                Fecha Fin
+                            </label>
+                            <input v-model="estadoCuentaFilter.fecha_fin" type="date" class="form-control"
+                                id="estadoFechaFin"
+                                aria-label="Fecha de fin del estado de cuenta"
+                                title="Período hasta el cual se incluirán los movimientos">
+                        </div>
+                        <!-- Botones de acción al final -->
+                        <div class="col-12 col-md-4">
+                            <label class="form-label invisible d-none d-md-block">Acciones</label>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button @click="abrirHistorial('estados-cuenta')" class="btn btn-outline-secondary"
+                                    title="Ver historial de estados de cuenta generados anteriormente"
+                                    aria-label="Ver historial de estados de cuenta">
+                                    <i class="bi bi-folder2-open" aria-hidden="true"></i>
+                                </button>
+                                <button @click="validarReporteGeneradoEstado() && generarEstadoCuenta('pdf')"
+                                    class="btn btn-danger"
+                                    :disabled="estadoCuentaLoading || !estadoCuentaFilter.cedula_cliente"
+                                    title="Descargar el estado de cuenta en formato PDF"
+                                    aria-label="Descargar estado de cuenta en PDF">
+                                    <i class="bi bi-file-pdf" aria-hidden="true"></i> PDF
+                                </button>
+                                <button @click="generarEstadoCuenta('json')" class="btn btn-primary flex-grow-1"
+                                    :disabled="estadoCuentaLoading || !estadoCuentaFilter.cedula_cliente"
+                                    title="Generar y visualizar el estado de cuenta"
+                                    aria-label="Generar estado de cuenta">
+                                    <i class="bi bi-lightning-charge" aria-hidden="true"></i> Generar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -561,15 +561,18 @@ const guardar = async () => {
 
                         <form v-else @submit.prevent="guardar">
                             <div class="row g-3 mb-4">
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold"><i
-                                            class="bi bi-person-fill me-1"></i>Cliente</label>
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label fw-bold" for="clienteInput">
+                                        <i class="bi bi-person-fill me-1" aria-hidden="true"></i>Cliente
+                                    </label>
                                     <!-- Input libre para poder escribir la cédula y autoseleccionar -->
                                     <input v-model="cedulaInput" @keyup.enter="seleccionarClientePorCedula"
                                         @blur="seleccionarClientePorCedula" list="clientesList" type="text"
-                                        class="form-control"
+                                        class="form-control" id="clienteInput"
                                         :placeholder="isEditing ? '' : 'Ingrese cédula o seleccione...'"
-                                        :disabled="isEditing" required />
+                                        :disabled="isEditing" required
+                                        aria-label="Buscar cliente por cédula o nombre"
+                                        title="Escriba la cédula del cliente o parte de su nombre. Se autocompletará con sugerencias" />
 
                                     <datalist id="clientesList">
                                         <option v-for="cli in filteredClientes" :key="cli.cedula" :value="cli.cedula">
@@ -577,23 +580,32 @@ const guardar = async () => {
                                         </option>
                                     </datalist>
 
-                                    <div v-if="selectedClientName" class="form-text text-muted mt-1">Nombre cliente:
-                                        <strong>{{ selectedClientName }}</strong>
+                                    <div v-if="selectedClientName" class="form-text text-muted mt-1">
+                                        <i class="bi bi-check-circle text-success me-1" aria-hidden="true"></i>
+                                        Nombre cliente: <strong>{{ selectedClientName }}</strong>
                                     </div>
                                 </div>
 
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold"><i class="bi bi-calendar-event me-1"></i>Fecha
-                                        Pago</label>
-                                    <input v-model="form.fecha" type="date" class="form-control" required>
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label fw-bold" for="fechaPago">
+                                        <i class="bi bi-calendar-event me-1" aria-hidden="true"></i>Fecha Pago
+                                    </label>
+                                    <input v-model="form.fecha" type="date" class="form-control" 
+                                        id="fechaPago" required
+                                        aria-label="Fecha del pago"
+                                        title="Seleccione la fecha en que se realizó el pago">
                                 </div>
 
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold"><i class="bi bi-bank me-1"></i>Cuenta
-                                        Bancaria</label>
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label fw-bold" for="cuentaBancaria">
+                                        <i class="bi bi-bank me-1" aria-hidden="true"></i>Cuenta Bancaria
+                                    </label>
                                     <input v-model="cuentaInput" @keyup.enter="seleccionarCuenta"
-                                        @blur="seleccionarCuenta" list="cuentasList" type="text" class="form-control"
-                                        placeholder="Buscar cuenta o banco..." required />
+                                        @blur="seleccionarCuenta" list="cuentasList" type="text" 
+                                        class="form-control" id="cuentaBancaria"
+                                        placeholder="Buscar cuenta o banco..." required
+                                        aria-label="Buscar cuenta bancaria por código o nombre del banco"
+                                        title="Escriba el código de cuenta o nombre del banco para buscar" />
 
                                     <datalist id="cuentasList">
                                         <option v-for="cta in filteredCuentas" :key="cta.codigo" :value="cta.codigo">
@@ -601,16 +613,20 @@ const guardar = async () => {
                                         </option>
                                     </datalist>
 
-                                    <div v-if="selectedCuentaInfo" class="form-text text-muted mt-1">Banco:
-                                        <strong>{{ selectedCuentaInfo }}</strong>
+                                    <div v-if="selectedCuentaInfo" class="form-text text-muted mt-1">
+                                        <i class="bi bi-check-circle text-success me-1" aria-hidden="true"></i>
+                                        Banco: <strong>{{ selectedCuentaInfo }}</strong>
                                     </div>
                                 </div>
 
                                 <div class="col-12">
-                                    <label class="form-label fw-bold"><i class="bi bi-card-text me-1"></i>Descripción /
-                                        Notas</label>
+                                    <label class="form-label fw-bold" for="descripcion">
+                                        <i class="bi bi-card-text me-1" aria-hidden="true"></i>Descripción / Notas
+                                    </label>
                                     <input v-model="form.descripcion" type="text" class="form-control"
-                                        placeholder="Opcional">
+                                        id="descripcion" placeholder="Opcional"
+                                        aria-label="Notas o descripción adicional del pago"
+                                        title="Campo opcional para agregar observaciones o referencias del pago">
                                 </div>
                             </div>
 
@@ -648,12 +664,18 @@ const guardar = async () => {
                                 <div v-else>
                                     <!-- Barra de búsqueda -->
                                     <div class="input-group mb-2">
-                                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                        <span class="input-group-text" aria-hidden="true">
+                                            <i class="bi bi-search"></i>
+                                        </span>
                                         <input type="text" class="form-control" v-model="busquedaFactura"
-                                            placeholder="Buscar factura por número o monto...">
+                                            placeholder="Buscar factura por número o monto..."
+                                            aria-label="Buscar entre las facturas disponibles"
+                                            title="Filtre facturas por número o monto para encontrar más rápido">
                                         <button v-if="busquedaFactura" type="button" class="btn btn-outline-secondary"
-                                            @click="busquedaFactura = ''">
-                                            <i class="bi bi-x-lg"></i>
+                                            @click="busquedaFactura = ''"
+                                            aria-label="Limpiar búsqueda de facturas"
+                                            title="Limpiar filtro de búsqueda">
+                                            <i class="bi bi-x-lg" aria-hidden="true"></i>
                                         </button>
                                     </div>
 
@@ -716,22 +738,25 @@ const guardar = async () => {
                                                     </div>
 
                                                     <!-- Monto a Pagar (Input) -->
-                                                    <div class="col-md-3">
+                                                    <div class="col-12 col-md-3">
                                                         <label class="small text-muted d-block">Monto a Pagar</label>
                                                         <div class="input-group input-group-sm">
-                                                            <span class="input-group-text">$</span>
+                                                            <span class="input-group-text" aria-hidden="true">$</span>
                                                             <input type="number" class="form-control text-end"
                                                                 step="0.01" min="0"
                                                                 :max="Number(factura.saldo_pendiente)"
                                                                 :value="getMontoFactura(factura.numero_factura)"
                                                                 @input="actualizarMonto(factura.numero_factura, Number(($event.target as HTMLInputElement).value))"
                                                                 :class="{ 'is-invalid': montoExcedeSaldo(factura) }"
-                                                                :disabled="!isFacturaSeleccionada(factura.numero_factura)">
+                                                                :disabled="!isFacturaSeleccionada(factura.numero_factura)"
+                                                                :aria-label="`Monto a pagar para factura ${formatNumeroFactura(factura.numero_factura)}`"
+                                                                :title="`Máximo: $${Number(factura.saldo_pendiente).toFixed(2)}. Ingrese el monto que desea abonar a esta factura`">
                                                             <button type="button" class="btn btn-outline-success btn-sm"
-                                                                title="Pagar saldo completo"
+                                                                title="Establecer monto igual al saldo pendiente completo"
+                                                                :aria-label="`Pagar saldo completo de $${Number(factura.saldo_pendiente).toFixed(2)}`"
                                                                 @click="pagarTotalFactura(factura)"
                                                                 :disabled="!isFacturaSeleccionada(factura.numero_factura)">
-                                                                <i class="bi bi-arrow-up-circle"></i>
+                                                                <i class="bi bi-arrow-up-circle" aria-hidden="true"></i>
                                                             </button>
                                                         </div>
                                                         <div v-if="montoExcedeSaldo(factura)" class="text-danger small">
@@ -780,14 +805,19 @@ const guardar = async () => {
                             <div v-if="error" class="alert alert-danger mt-3"><i
                                     class="bi bi-exclamation-circle me-1"></i> {{ error }}</div>
 
-                            <div class="d-flex justify-content-end gap-2 mt-4">
-                                <button type="button" @click="router.push('/pagos')" class="btn btn-outline-secondary">
-                                    <i class="bi bi-x-lg me-1"></i>Cancelar
+                            <div class="d-flex flex-column flex-sm-row justify-content-end gap-2 mt-4">
+                                <button type="button" @click="router.push('/pagos')" 
+                                    class="btn btn-outline-secondary"
+                                    aria-label="Cancelar y volver a la lista de pagos"
+                                    title="Descarta los cambios y regresa a la lista de pagos">
+                                    <i class="bi bi-x-lg me-1" aria-hidden="true"></i>Cancelar
                                 </button>
                                 <button type="submit" class="btn btn-success px-4"
-                                    :disabled="saving || cantidadSeleccionadas === 0">
-                                    <span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>
-                                    <i v-else class="bi bi-check-lg me-1"></i>
+                                    :disabled="saving || cantidadSeleccionadas === 0"
+                                    :aria-label="isEditing ? 'Guardar cambios del pago' : 'Registrar nuevo pago'"
+                                    :title="cantidadSeleccionadas === 0 ? 'Seleccione al menos una factura para continuar' : (isEditing ? 'Actualizar el pago con los cambios realizados' : 'Finalizar el registro del nuevo pago')">
+                                    <span v-if="saving" class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                                    <i v-else class="bi bi-check-lg me-1" aria-hidden="true"></i>
                                     {{ isEditing ? 'Actualizar Pago' : 'Finalizar Pago' }}
                                 </button>
                             </div>
