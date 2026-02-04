@@ -585,7 +585,9 @@ const guardar = async () => {
                                 <div class="col-md-4">
                                     <label class="form-label fw-bold"><i class="bi bi-calendar-event me-1"></i>Fecha
                                         Pago</label>
-                                    <input v-model="form.fecha" type="date" class="form-control" required>
+                                    <div class="form-control bg-light" style="cursor: not-allowed;">
+                                        {{ fechaActual || 'Cargando...' }}
+                                    </div>
                                 </div>
 
                                 <div class="col-md-4">
