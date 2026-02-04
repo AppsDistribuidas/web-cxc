@@ -232,15 +232,53 @@ onMounted(async () => {
 
 
 
-        <div v-if="loading" class="text-center py-5">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted">Cargando registros...</p>
+        <!-- Loading Skeleton -->
+        <div v-if="loading" class="card shadow-sm border-0">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th v-if="can('Administración cuentas bancarias')" style="width: 80px"></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="i in 5" :key="i">
+                            <td v-if="can('Administración cuentas bancarias')">
+                                <div class="skeleton-box" style="width: 60px;"></div>
+                            </td>
+                            <td>
+                                <div class="skeleton-box" style="width: 80px;"></div>
+                            </td>
+                            <td>
+                                <div class="skeleton-box" style="width: 120px;"></div>
+                            </td>
+                            <td>
+                                <div class="skeleton-box" style="width: 100px;"></div>
+                            </td>
+                            <td>
+                                <div class="skeleton-box" style="width: 80px;"></div>
+                            </td>
+                            <td>
+                                <div class="skeleton-box" style="width: 60px;"></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
+
+        <!-- Error -->
         <div v-else-if="error" class="alert alert-danger shadow-sm">
             <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ error }}
         </div>
 
+        <!-- Table -->
         <div v-else class="card shadow-sm border-0 overflow-hidden">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
@@ -257,7 +295,8 @@ onMounted(async () => {
                                     }}</small>
                             </th>
                             <th @click="toggleSort('banco_nombre')" class="fw-bold" style="cursor:pointer">
-                                Banco <small v-if="sortBy === 'banco_nombre'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</small>
+                                Banco <small v-if="sortBy === 'banco_nombre'">{{ sortOrder === 'asc' ? '▲' : '▼'
+                                    }}</small>
                             </th>
                             <th @click="toggleSort('created_at')" class="text-center fw-bold" style="cursor:pointer">
                                 Fecha Creación <small v-if="sortBy === 'created_at'">{{ sortOrder === 'asc' ? '▲' : '▼'
@@ -336,49 +375,55 @@ onMounted(async () => {
                         </tr>
 
                         <tr v-if="cuentas.length === 0">
-                            <td :colspan="tableColspan + 1" class="text-center py-5 text-muted">
-                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                                No hay cuentas registradas en el sistema.
+                            <td :colspan="tableColspan + 1" class="text-center py-5">
+                                <div class="empty-state">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="currentColor"
+                                        class="bi bi-bank text-muted mb-3" viewBox="0 0 16 16">
+                                        <path
+                                            d="m8 0 6.61 3h.89a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5H15v7a.5.5 0 0 1 .485.379l.5 2A.5.5 0 0 1 15.5 16H.5a.5.5 0 0 1-.485-.621l.5-2A.5.5 0 0 1 1 13V6H.5a.5.5 0 0 1-.5-.5v-2A.5.5 0 0 1 .5 3h.89zM3.777 3h8.447L8 1zM2 6v7h1V6zm2 0v7h2.5V6zm3.5 0v7h1V6zm2 0v7H12V6zM13 6v7h1V6zm2-1V4H1v1zm-.39 9H1.39l-.25 1h13.72z" />
+                                    </svg>
+                                    <h5 class="text-muted mb-2">No hay cuentas registradas</h5>
+                                    <p class="text-secondary small mb-0">Comienza creando una nueva cuenta bancaria</p>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
+    </div>
 
-        <!-- Pagination Controls -->
-        <div v-if="!loading && !error && total > perPage" class="card shadow-sm border-0 mt-3">
-            <div class="card-body py-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div class="small text-muted">
-                        Página {{ currentPage }} de {{ lastPage }}
-                    </div>
-                    <nav>
-                        <ul class="pagination mb-0">
-                            <li class="page-item" :class="{ disabled: currentPage === 1 }">
-                                <button class="page-link" @click="irAPagina(currentPage - 1)"
-                                    :disabled="currentPage === 1">
-                                    <i class="bi bi-chevron-left"></i> Anterior
-                                </button>
-                            </li>
-
-                            <li v-for="(page, index) in paginationRange" :key="index" class="page-item"
-                                :class="{ active: page === currentPage, disabled: page === '...' }">
-                                <button v-if="page !== '...'" class="page-link" @click="irAPagina(page as number)">
-                                    {{ page }}
-                                </button>
-                                <span v-else class="page-link">{{ page }}</span>
-                            </li>
-
-                            <li class="page-item" :class="{ disabled: currentPage === lastPage }">
-                                <button class="page-link" @click="irAPagina(currentPage + 1)"
-                                    :disabled="currentPage === lastPage">
-                                    Siguiente <i class="bi bi-chevron-right"></i>
-                                </button>
-                            </li>
-                        </ul>
-                    </nav>
+    <!-- Pagination Controls -->
+    <div v-if="!loading && !error && total > perPage" class="card shadow-sm border-0 mt-3">
+        <div class="card-body py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="small text-muted">
+                    Página {{ currentPage }} de {{ lastPage }}
                 </div>
+                <nav>
+                    <ul class="pagination mb-0">
+                        <li class="page-item" :class="{ disabled: currentPage === 1 }">
+                            <button class="page-link" @click="irAPagina(currentPage - 1)" :disabled="currentPage === 1">
+                                <i class="bi bi-chevron-left"></i> Anterior
+                            </button>
+                        </li>
+
+                        <li v-for="(page, index) in paginationRange" :key="index" class="page-item"
+                            :class="{ active: page === currentPage, disabled: page === '...' }">
+                            <button v-if="page !== '...'" class="page-link" @click="irAPagina(page as number)">
+                                {{ page }}
+                            </button>
+                            <span v-else class="page-link">{{ page }}</span>
+                        </li>
+
+                        <li class="page-item" :class="{ disabled: currentPage === lastPage }">
+                            <button class="page-link" @click="irAPagina(currentPage + 1)"
+                                :disabled="currentPage === lastPage">
+                                Siguiente <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </li>
+                    </ul>
+                </nav>
             </div>
         </div>
     </div>
@@ -386,6 +431,67 @@ onMounted(async () => {
 
 <style scoped>
 .table-hover tbody tr:hover {
-    background-color: rgba(0, 0, 0, .02);
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+/* Skeleton Loading Animation */
+.skeleton-box {
+    display: inline-block;
+    height: 16px;
+    background: linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Empty State */
+.empty-state {
+    padding: 2rem;
+}
+
+.empty-state svg {
+    opacity: 0.6;
+}
+
+/* Botón primario mejorado */
+.btn-primary {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.35);
+}
+
+/* Card con bordes redondeados */
+.card {
+    border-radius: 10px;
+}
+
+/* Barra de info con borde lateral azul */
+.card.bg-light {
+    border-left: 4px solid #0d6efd;
+    background: linear-gradient(90deg, rgba(13, 110, 253, 0.03) 0%, #f8f9fa 100%) !important;
+}
+
+/* Tabla header con gradiente azul sutil */
+thead.bg-light {
+    background: linear-gradient(180deg, #e7f1ff 0%, #f8f9fa 100%) !important;
+}
+
+thead.bg-light th {
+    border-bottom: 2px solid #0d6efd;
 }
 </style>
