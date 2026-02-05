@@ -1,8 +1,21 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterLink, RouterView, useRoute } from 'vue-router'
 import { useAuth } from '@/composables/useAuth';
+import { ref, watch } from 'vue';
+// @ts-ignore
+import { Collapse } from 'bootstrap';
 
 const { isAuthenticated, logout, user, can } = useAuth();
+const route = useRoute();
+const navbarRef = ref<HTMLElement | null>(null);
+
+// Cerrar menú móvil automáticamente al navegar
+watch(route, () => {
+  if (navbarRef.value && navbarRef.value.classList.contains('show')) {
+    const bsCollapse = Collapse.getInstance(navbarRef.value) || new Collapse(navbarRef.value, { toggle: false });
+    bsCollapse.hide();
+  }
+});
 </script>
 
 <template>
@@ -13,12 +26,20 @@ const { isAuthenticated, logout, user, can } = useAuth();
         <span class="fw-bold">Sistema CXC</span>
       </RouterLink>
 
+      <!-- Badge Usuario Móvil (Visible < LG) -->
+      <div v-if="isAuthenticated" class="user-badge d-flex d-lg-none align-items-center ms-auto me-3">
+        <div class="user-avatar me-2">
+          <i class="bi bi-person-fill"></i>
+        </div>
+        <span class="text-light small">{{ user?.username || 'Usuario' }}</span>
+      </div>
+
       <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
         aria-controls="navbarNav" aria-expanded="false" aria-label="Abrir menú de navegación">
         <span class="navbar-toggler-icon"></span>
       </button>
 
-      <div class="collapse navbar-collapse" id="navbarNav">
+      <div class="collapse navbar-collapse" id="navbarNav" ref="navbarRef">
         <ul class="navbar-nav me-auto">
           <li class="nav-item">
             <RouterLink to="/" class="nav-link" active-class="active" aria-label="Ir a inicio">
@@ -48,7 +69,8 @@ const { isAuthenticated, logout, user, can } = useAuth();
         </ul>
 
         <div class="d-flex align-items-center gap-3">
-          <div class="user-badge d-flex align-items-center">
+          <!-- Badge Usuario Desktop (Oculto en móvil) -->
+          <div class="user-badge d-none d-lg-flex align-items-center">
             <div class="user-avatar me-2">
               <i class="bi bi-person-fill"></i>
             </div>

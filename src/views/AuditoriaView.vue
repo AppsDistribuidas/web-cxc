@@ -306,8 +306,8 @@ onMounted(() => {
         <div class="card shadow-sm border-0 mb-4 bg-light">
             <div class="card-body py-2">
                 <div class="row align-items-center g-2">
-                    <div class="col-auto">
-                        <div class="d-flex align-items-center gap-2">
+                    <div class="col-12 col-lg-auto">
+                        <div class="d-flex flex-wrap align-items-center gap-2">
                             <label class="form-label mb-0 small text-muted">Desde:</label>
                             <input type="date" v-model="filtroFechaInicio" class="form-control form-control-sm"
                                 style="width: 140px;">
@@ -319,23 +319,25 @@ onMounted(() => {
                             </button>
                         </div>
                     </div>
-                    <div class="col text-end">
-                        <button @click="limpiarFiltros" class="btn btn-outline-secondary btn-sm me-2"
-                            title="Limpiar filtros">
-                            <i class="bi bi-x-circle"></i> Limpiar
-                        </button>
-                        <button @click="obtenerPistas" class="btn btn-outline-secondary btn-sm" title="Actualizar">
-                            <i class="bi bi-arrow-clockwise"></i> Refrescar
-                        </button>
+                    <div class="col-12 col-lg text-lg-end">
+                        <div class="d-flex justify-content-end gap-2">
+                            <button @click="limpiarFiltros" class="btn btn-outline-secondary btn-sm"
+                                title="Limpiar filtros">
+                                <i class="bi bi-x-circle"></i> Limpiar
+                            </button>
+                            <button @click="obtenerPistas" class="btn btn-outline-secondary btn-sm" title="Actualizar">
+                                <i class="bi bi-arrow-clockwise"></i> Refrescar
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="row mt-2" v-if="pagination">
                     <div class="col">
                         <span class="text-muted small">
                             Mostrando <strong>{{ pistas.length }}</strong> de <strong>{{ pagination.total_records
-                                }}</strong> registros
+                            }}</strong> registros
                             | Página <strong>{{ pagination.current_page }}</strong> de <strong>{{ pagination.total_pages
-                                }}</strong>
+                            }}</strong>
                         </span>
                     </div>
                 </div>
