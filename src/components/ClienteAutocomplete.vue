@@ -55,10 +55,12 @@ const onSearchBlur = () => {
     }
 };
 
-// Función de filtro personalizada robusta
-const filterClientes = (option: Cliente, label: string, search: string) => {
+// Función de filtro personalizada que cumple con Vue Select v4
+// Firma requerida: (options: Option[], search: string) => Option[]
+const filterClientes = (options: Cliente[], search: string) => {
+    if (!search) return options;
     const searchLower = search.toLowerCase();
-    return (
+    return options.filter(option =>
         option.cedula.toLowerCase().includes(searchLower) ||
         (option.nombre || '').toLowerCase().includes(searchLower)
     );

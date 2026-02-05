@@ -50,14 +50,17 @@ const onSearchBlur = () => {
     }
 };
 
-// Función de filtro personalizada
-const filterCuentas = (option: Cuenta, label: string, search: string) => {
+// Función de filtro personalizada que cumple con Vue Select v4
+const filterCuentas = (options: Cuenta[], search: string) => {
+    if (!search) return options;
     const searchLower = search.toLowerCase();
-    const bancoNombre = option.entidad_bancaria?.nombre || '';
-    return (
-        option.codigo.toLowerCase().includes(searchLower) ||
-        bancoNombre.toLowerCase().includes(searchLower)
-    );
+    return options.filter(option => {
+        const bancoNombre = option.entidad_bancaria?.nombre || '';
+        return (
+            option.codigo.toLowerCase().includes(searchLower) ||
+            bancoNombre.toLowerCase().includes(searchLower)
+        );
+    });
 };
 
 // Función para etiqueta (mejora accesibilidad y filtrado)
