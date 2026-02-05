@@ -210,9 +210,9 @@ const actualizar = async () => {
 </template>
 
 <style scoped>
-/* Gradiente Azul Mejorado */
+/* Tono oscuro sólido consistente con el tema */
 .gradient-header {
-    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    background: #1a1a2e;
 }
 
 /* Skeleton loading animation */

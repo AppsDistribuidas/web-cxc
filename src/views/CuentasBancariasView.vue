@@ -202,7 +202,7 @@ onMounted(async () => {
     <div class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h2 class="text-primary mb-1">Cuentas Bancarias</h2>
+                <h2 class="text-primary-gradient fw-bold mb-1">Cuentas Bancarias</h2>
                 <p class="text-muted small mb-0">Administración de cuentas bancarias del sistema</p>
             </div>
 
@@ -292,15 +292,15 @@ onMounted(async () => {
                             </th>
                             <th @click="toggleSort('nombre_cuenta')" class="fw-bold" style="cursor:pointer">
                                 Nombre <small v-if="sortBy === 'nombre_cuenta'">{{ sortOrder === 'asc' ? '▲' : '▼'
-                                    }}</small>
+                                }}</small>
                             </th>
                             <th @click="toggleSort('banco_nombre')" class="fw-bold" style="cursor:pointer">
                                 Banco <small v-if="sortBy === 'banco_nombre'">{{ sortOrder === 'asc' ? '▲' : '▼'
-                                    }}</small>
+                                }}</small>
                             </th>
                             <th @click="toggleSort('created_at')" class="text-center fw-bold" style="cursor:pointer">
                                 Fecha Creación <small v-if="sortBy === 'created_at'">{{ sortOrder === 'asc' ? '▲' : '▼'
-                                    }}</small>
+                                }}</small>
                             </th>
                             <th @click="toggleSort('estado')" class="text-center fw-bold" style="cursor:pointer">
                                 Estado <small v-if="sortBy === 'estado'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</small>

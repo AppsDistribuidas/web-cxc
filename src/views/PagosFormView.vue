@@ -646,7 +646,7 @@ const guardar = async () => {
                                 </div>
 
                                 <!-- Skeleton loading de facturas -->
-                                <div v-if="cargandoFacturas" class="py-3">
+                                <div v-else-if="cargandoFacturas" class="py-3">
                                     <div v-for="i in 4" :key="i" class="d-flex align-items-center py-2 border-bottom">
                                         <div class="skeleton-box me-3"
                                             style="width: 20px; height: 20px; border-radius: 4px;"></div>
@@ -847,7 +847,7 @@ const guardar = async () => {
 <style scoped>
 /* Gradiente Azul Mejorado */
 .gradient-header {
-    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    background: #1a1a2e;
 }
 
 /* Transiciones suaves en cards de facturas */

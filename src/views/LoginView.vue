@@ -158,7 +158,7 @@ const handleLogin = async () => {
     display: flex;
     align-items: safe center;
     justify-content: center;
-    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     padding: 1rem;
     margin: 0;
     position: fixed;
@@ -197,20 +197,21 @@ const handleLogin = async () => {
     }
 }
 
-/* Header claro para contraste con fondo azul */
+/* Header claro para contraste con fondo oscuro */
 .gradient-header {
-    background: rgba(255, 255, 255, 0.95);
-    color: #0d6efd !important;
-    border-bottom: 3px solid #0d6efd;
+    background: #ffffff;
+    color: #1a1a2e !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .gradient-header h2,
 .gradient-header p {
-    color: #0d6efd !important;
+    color: #1a1a2e !important;
 }
 
 .gradient-header .opacity-75 {
-    opacity: 0.7 !important;
+    opacity: 0.6 !important;
+    color: #495057 !important;
 }
 
 .logo-icon {

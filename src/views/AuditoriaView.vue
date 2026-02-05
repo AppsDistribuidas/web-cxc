@@ -297,7 +297,7 @@ onMounted(() => {
     <div class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h2 class="text-primary mb-1">Reporte de Auditorías</h2>
+                <h2 class="text-primary-gradient fw-bold mb-1">Reporte de Auditorías</h2>
                 <p class="text-muted small mb-0">Historial de acciones realizadas en el sistema</p>
             </div>
         </div>
@@ -333,9 +333,9 @@ onMounted(() => {
                     <div class="col">
                         <span class="text-muted small">
                             Mostrando <strong>{{ pistas.length }}</strong> de <strong>{{ pagination.total_records
-                            }}</strong> registros
+                                }}</strong> registros
                             | Página <strong>{{ pagination.current_page }}</strong> de <strong>{{ pagination.total_pages
-                            }}</strong>
+                                }}</strong>
                         </span>
                     </div>
                 </div>

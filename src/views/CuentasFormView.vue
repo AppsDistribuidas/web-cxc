@@ -187,6 +187,11 @@ const guardar = async () => {
 }
 
 /* Botón success mejorado */
+/* Tono oscuro sólido consistente con el tema */
+.gradient-header {
+    background: #1a1a2e;
+}
+
 .btn-success {
     background: linear-gradient(135deg, #198754 0%, #146c43 100%);
     border: none;

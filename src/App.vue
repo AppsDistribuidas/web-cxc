@@ -180,3 +180,11 @@ const { isAuthenticated, logout, user, can } = useAuth();
   }
 }
 </style>
+
+<style>
+/* Estilos Globales del Tema */
+.text-primary-gradient {
+  color: #2c3e50;
+  /* Azul marino profundo, casi oscuro pero con tono */
+}
+</style>

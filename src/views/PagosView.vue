@@ -233,11 +233,11 @@ const anularPago = async (pago: any) => {
 };
 
 const imprimirComprobante = async (numeroPago: string, isProcesado: boolean = false) => {
-    const mensaje = isProcesado 
+    const mensaje = isProcesado
         ? '¿Desea reimprimir el comprobante de pago?'
         : '¿Desea procesar el pago y generar el comprobante? Esta acción no se puede deshacer.';
     const titulo = isProcesado ? 'Reimprimir comprobante' : 'Procesar pago';
-    
+
     const confirmed = await showConfirm(mensaje, titulo);
     if (!confirmed) return;
 
@@ -329,12 +329,12 @@ onMounted(() => {
     <div class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h2 class="text-primary mb-1">Gestión de Pagos</h2>
+                <h2 class="text-primary-gradient fw-bold mb-1">Gestión de Pagos</h2>
                 <p class="text-muted small mb-0">Registro y control de recaudación de clientes</p>
             </div>
 
-            <button @click="router.push('/pagos/crear')" class="btn btn-primary shadow-sm"
-                aria-label="Crear nuevo pago" title="Registrar un nuevo pago de cliente">
+            <button @click="router.push('/pagos/crear')" class="btn btn-primary shadow-sm" aria-label="Crear nuevo pago"
+                title="Registrar un nuevo pago de cliente">
                 <i class="bi bi-plus-lg me-1" aria-hidden="true"></i> Nuevo Pago
             </button>
         </div>
@@ -427,18 +427,18 @@ onMounted(() => {
                         <tr>
                             <th class="text-center" style="width: 40px;">
                                 <input type="checkbox" class="form-check-input" :checked="allSelected"
-                                    @change="toggleSelectAll" 
+                                    @change="toggleSelectAll"
                                     title="Seleccionar o deseleccionar todos los pagos de esta página"
                                     aria-label="Seleccionar todos los pagos">
                             </th>
                             <th class="text-center ps-3">Acciones</th>
                             <th @click="toggleSort('numero_pago')" class="ps-4 fw-bold" style="cursor:pointer">
                                 No. Pago <small v-if="sortBy === 'numero_pago'">{{ sortOrder === 'asc' ? '▲' : '▼'
-                                    }}</small>
+                                }}</small>
                             </th>
                             <th @click="toggleSort('cedula_cliente')" class="fw-bold" style="cursor:pointer">
                                 Cliente <small v-if="sortBy === 'cedula_cliente'">{{ sortOrder === 'asc' ? '▲' : '▼'
-                                    }}</small>
+                                }}</small>
                             </th>
                             <th class="text-center fw-bold">Cuenta</th>
                             <th @click="toggleSort('fecha')" class="fw-bold" style="cursor:pointer">
@@ -459,14 +459,12 @@ onMounted(() => {
                             </th>
                             <th>
                                 <input v-model="filterNumeroPago" class="form-control form-control-sm"
-                                    placeholder="No. Pago"
-                                    aria-label="Filtrar por número de pago"
+                                    placeholder="No. Pago" aria-label="Filtrar por número de pago"
                                     title="Escriba el número de pago para filtrar">
                             </th>
                             <th>
                                 <input v-model="filterCedula" class="form-control form-control-sm"
-                                    placeholder="Cédula o Nombre"
-                                    aria-label="Filtrar por cédula o nombre del cliente"
+                                    placeholder="Cédula o Nombre" aria-label="Filtrar por cédula o nombre del cliente"
                                     title="Escriba cédula (solo números) o nombre para buscar">
                             </th>
                             <th>
@@ -503,21 +501,23 @@ onMounted(() => {
                                 <div class="btn-group">
                                     <button v-if="!pago.fecha_impresion && pago.estado"
                                         @click="router.push(`/pagos/${pago.numero_pago}/editar`)"
-                                        class="btn btn-sm btn-outline-primary" 
+                                        class="btn btn-sm btn-outline-primary"
                                         :title="`Editar pago ${pago.numero_pago}`"
                                         :aria-label="`Editar pago número ${pago.numero_pago}`">
                                         <i class="bi bi-pencil" aria-hidden="true"></i>
                                     </button>
 
-                                    <button v-if="pago.estado" @click="imprimirComprobante(pago.numero_pago, !!pago.fecha_impresion)"
-                                        class="btn btn-sm btn-outline-secondary" 
+                                    <button v-if="pago.estado"
+                                        @click="imprimirComprobante(pago.numero_pago, !!pago.fecha_impresion)"
+                                        class="btn btn-sm btn-outline-secondary"
                                         :title="pago.fecha_impresion ? `Reimprimir comprobante del pago ${pago.numero_pago}` : `Procesar y descargar comprobante del pago ${pago.numero_pago}`"
                                         :aria-label="pago.fecha_impresion ? `Reimprimir comprobante` : `Descargar comprobante`">
-                                        <i :class="pago.fecha_impresion ? 'bi bi-printer' : 'bi bi-download'" aria-hidden="true"></i>
+                                        <i :class="pago.fecha_impresion ? 'bi bi-printer' : 'bi bi-download'"
+                                            aria-hidden="true"></i>
                                     </button>
 
                                     <button v-if="!pago.fecha_impresion && pago.estado" @click="anularPago(pago)"
-                                        class="btn btn-sm btn-outline-danger" 
+                                        class="btn btn-sm btn-outline-danger"
                                         :title="`Anular pago ${pago.numero_pago} - Esta acción no se puede deshacer`"
                                         :aria-label="`Anular pago número ${pago.numero_pago}`">
                                         <i class="bi bi-trash" aria-hidden="true"></i>

@@ -511,7 +511,7 @@ const validarReporteGeneradoEstado = (): boolean => {
         <!-- Header consistente con otras vistas -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h2 class="text-primary mb-1">Reportes y Consultas</h2>
+                <h2 class="text-primary-gradient fw-bold mb-1">Reportes y Consultas</h2>
                 <p class="text-muted small mb-0">Generación de reportes de pagos y estados de cuenta</p>
             </div>
         </div>
@@ -677,7 +677,7 @@ const validarReporteGeneradoEstado = (): boolean => {
                                         <td class="text-end text-muted">${{ Number(d.total_factura || 0).toFixed(2) }}
                                         </td>
                                         <td class="text-end fw-bold text-success">${{ Number(d.monto_pagado).toFixed(2)
-                                        }}</td>
+                                            }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -842,7 +842,7 @@ const validarReporteGeneradoEstado = (): boolean => {
                     <div class="bg-light border rounded p-3 mb-4 text-center">
                         <div class="text-muted small">SALDO INICIAL</div>
                         <div class="fs-3 fw-bold text-secondary">${{ Number(estadoCuentaData.saldo_inicial).toFixed(2)
-                            }}</div>
+                        }}</div>
                         <div class="text-muted small">(Deuda acumulada antes del {{ estadoCuentaData.periodo?.desde }})
                         </div>
                     </div>
@@ -855,7 +855,7 @@ const validarReporteGeneradoEstado = (): boolean => {
                                 <i class="bi bi-list-ul me-1"></i>Movimientos
                                 <span class="badge bg-secondary ms-1">{{
                                     estadoCuentaData.movimientos?.length || 0
-                                }}</span>
+                                    }}</span>
                             </button>
                         </li>
                         <li class="nav-item">
