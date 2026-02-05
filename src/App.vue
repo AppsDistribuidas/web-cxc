@@ -191,7 +191,7 @@ watch(route, () => {
   }
 
   .user-badge {
-    margin-top: 1rem;
+    margin-top: 0;
     justify-content: center;
   }
 

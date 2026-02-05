@@ -434,20 +434,20 @@ onMounted(() => {
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light text-secondary">
                         <tr>
-                            <th class="text-center" style="width: 40px;">
+                            <th class="text-center sticky-col-1" style="width: 40px;">
                                 <input type="checkbox" class="form-check-input" :checked="allSelected"
                                     @change="toggleSelectAll"
                                     title="Seleccionar o deseleccionar todos los pagos de esta página"
                                     aria-label="Seleccionar todos los pagos">
                             </th>
-                            <th class="text-center ps-3">Acciones</th>
+                            <th class="text-center ps-3 sticky-col-2">Acciones</th>
                             <th @click="toggleSort('numero_pago')" class="ps-4 fw-bold" style="cursor:pointer">
                                 No. Pago <small v-if="sortBy === 'numero_pago'">{{ sortOrder === 'asc' ? '▲' : '▼'
-                                    }}</small>
+                                }}</small>
                             </th>
                             <th @click="toggleSort('cedula_cliente')" class="fw-bold" style="cursor:pointer">
                                 Cliente <small v-if="sortBy === 'cedula_cliente'">{{ sortOrder === 'asc' ? '▲' : '▼'
-                                    }}</small>
+                                }}</small>
                             </th>
                             <th class="text-center fw-bold">Cuenta</th>
                             <th @click="toggleSort('fecha')" class="fw-bold" style="cursor:pointer">
@@ -458,8 +458,8 @@ onMounted(() => {
                         </tr>
                         <!-- Filter row -->
                         <tr class="bg-white">
-                            <th></th>
-                            <th class="text-center">
+                            <th class="sticky-col-1"></th>
+                            <th class="text-center sticky-col-2">
                                 <button @click="limpiarFiltros" class="btn btn-sm btn-outline-secondary"
                                     title="Restablecer todos los filtros a sus valores por defecto"
                                     aria-label="Limpiar todos los filtros de búsqueda">
@@ -501,14 +501,14 @@ onMounted(() => {
                     <tbody>
                         <tr v-for="pago in pagos" :key="pago.numero_pago"
                             :class="{ 'table-primary': selectedPagos.has(pago.numero_pago) }">
-                            <td class="text-center">
+                            <td class="text-center sticky-col-1">
                                 <input v-if="pago.estado" type="checkbox" class="form-check-input"
                                     :checked="selectedPagos.has(pago.numero_pago)" @change="toggleSelect(pago)"
                                     :title="pago.estado ? 'Seleccionar para impresión masiva' : ''"
                                     :aria-label="`Seleccionar pago ${pago.numero_pago} para impresión masiva`">
                                 <span v-else class="text-muted small"></span>
                             </td>
-                            <td class="text-center ps-3">
+                            <td class="text-center ps-3 sticky-col-2">
                                 <div class="btn-group">
                                     <button v-if="!pago.fecha_impresion && pago.estado"
                                         @click="router.push(`/pagos/${pago.numero_pago}/editar`)"
@@ -684,5 +684,46 @@ thead.bg-light {
 
 thead.bg-light th {
     border-bottom: 2px solid #0d6efd;
+}
+
+/* Sticky Columns para móvil */
+.sticky-col-1 {
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    background-color: #fff;
+    min-width: 40px;
+}
+
+.sticky-col-2 {
+    position: sticky;
+    left: 40px;
+    /* Ancho de col 1 */
+    z-index: 10;
+    background-color: #fff;
+    border-right: 2px solid #dee2e6;
+    /* Separador visual tipo sombra */
+    box-shadow: 4px 0 5px -2px rgba(0, 0, 0, 0.1);
+}
+
+/* Ajustes de fondo para estados de tabla */
+tr.table-primary .sticky-col-1,
+tr.table-primary .sticky-col-2 {
+    background-color: rgba(13, 110, 253, 0.08);
+    /* Coincidir con table-primary */
+}
+
+/* Fix para hover */
+.table-hover tbody tr:hover .sticky-col-1,
+.table-hover tbody tr:hover .sticky-col-2 {
+    background-color: #f1f6fd;
+    /* Color aproximado de hover en filas seleccionado */
+}
+
+/* Headers deben estar sobre el contenido y tener su propio color */
+thead .sticky-col-1,
+thead .sticky-col-2 {
+    z-index: 20;
+    background: linear-gradient(180deg, #e7f1ff 0%, #f8f9fa 100%) !important;
 }
 </style>

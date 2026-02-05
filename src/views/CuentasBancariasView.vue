@@ -287,7 +287,8 @@ onMounted(async () => {
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light text-secondary">
                         <tr>
-                            <th v-if="can('Administración cuentas bancarias')" class="text-center ps-3">
+                            <th v-if="can('Administración cuentas bancarias')"
+                                class="text-center ps-3 sticky-col-actions">
                                 Acciones
                             </th>
                             <th @click="toggleSort('codigo')" class="ps-4 fw-bold" style="cursor:pointer">
@@ -295,15 +296,15 @@ onMounted(async () => {
                             </th>
                             <th @click="toggleSort('nombre_cuenta')" class="fw-bold" style="cursor:pointer">
                                 Nombre <small v-if="sortBy === 'nombre_cuenta'">{{ sortOrder === 'asc' ? '▲' : '▼'
-                                }}</small>
+                                    }}</small>
                             </th>
                             <th @click="toggleSort('banco_nombre')" class="fw-bold" style="cursor:pointer">
                                 Banco <small v-if="sortBy === 'banco_nombre'">{{ sortOrder === 'asc' ? '▲' : '▼'
-                                }}</small>
+                                    }}</small>
                             </th>
                             <th @click="toggleSort('created_at')" class="text-center fw-bold" style="cursor:pointer">
                                 Fecha Creación <small v-if="sortBy === 'created_at'">{{ sortOrder === 'asc' ? '▲' : '▼'
-                                }}</small>
+                                    }}</small>
                             </th>
                             <th @click="toggleSort('estado')" class="text-center fw-bold" style="cursor:pointer">
                                 Estado <small v-if="sortBy === 'estado'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</small>
@@ -311,7 +312,7 @@ onMounted(async () => {
                         </tr>
                         <!-- Filter row -->
                         <tr class="bg-white">
-                            <th class="text-center" v-if="can('Administración cuentas bancarias')">
+                            <th class="text-center sticky-col-actions" v-if="can('Administración cuentas bancarias')">
                                 <button @click="limpiarFiltros" class="btn btn-sm btn-outline-secondary"
                                     title="Limpiar filtros">
                                     <i class="bi bi-x-circle"></i>
@@ -352,7 +353,8 @@ onMounted(async () => {
                     </thead>
                     <tbody>
                         <tr v-for="cuenta in cuentas" :key="cuenta.codigo">
-                            <td class="text-center ps-3" v-if="can('Administración cuentas bancarias')">
+                            <td class="text-center ps-3 sticky-col-actions"
+                                v-if="can('Administración cuentas bancarias')">
                                 <div class="btn-group" role="group">
                                     <button @click="router.push(`/cuentas/${cuenta.codigo}/editar`)"
                                         class="btn btn-sm btn-outline-primary" title="Editar">
@@ -496,5 +498,27 @@ thead.bg-light {
 
 thead.bg-light th {
     border-bottom: 2px solid #0d6efd;
+}
+
+/* Sticky Action Column */
+.sticky-col-actions {
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    background-color: #fff;
+    border-right: 2px solid #dee2e6;
+    box-shadow: 4px 0 5px -2px rgba(0, 0, 0, 0.1);
+}
+
+/* Fix para hover */
+.table-hover tbody tr:hover .sticky-col-actions {
+    background-color: #f8f9fa;
+    /* Color hover standard */
+}
+
+/* Header sticky */
+thead .sticky-col-actions {
+    z-index: 20;
+    background: linear-gradient(180deg, #e7f1ff 0%, #f8f9fa 100%) !important;
 }
 </style>

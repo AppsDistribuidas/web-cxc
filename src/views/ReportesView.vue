@@ -130,7 +130,8 @@ const estadoCuentaData = ref<any>(null); // Objeto con estructura { cliente, res
 const estadoCuentaLoading = ref(false);
 const estadoCuentaPaginaActual = ref(1);
 const estadoCuentaPorPagina = 25;
-const estadoCuentaTabActiva = ref<'movimientos' | 'pendientes'>('movimientos'); // Tab activa
+
+// const estadoCuentaTabActiva = ref<'movimientos' | 'pendientes'>('movimientos'); // REMOVED
 
 // Paginación de movimientos en estado de cuenta
 const movimientosPaginados = computed(() => {
@@ -744,190 +745,183 @@ const validarReporteGeneradoEstado = (): boolean => {
                         </div>
                     </div>
 
-                    <!-- Tabs de navegación -->
-                    <ul class="nav nav-tabs mb-3">
-                        <li class="nav-item">
-                            <button class="nav-link" :class="{ active: estadoCuentaTabActiva === 'movimientos' }"
-                                @click="estadoCuentaTabActiva = 'movimientos'">
-                                <i class="bi bi-list-ul me-1"></i>Movimientos
-                                <span class="badge bg-secondary ms-1">{{
-                                    estadoCuentaData.movimientos?.length || 0
-                                    }}</span>
-                            </button>
-                        </li>
-                        <li class="nav-item">
-                            <button class="nav-link" :class="{ active: estadoCuentaTabActiva === 'pendientes' }"
-                                @click="estadoCuentaTabActiva = 'pendientes'">
-                                <i class="bi bi-clock-history me-1"></i>Pagos Pendientes
-                                <span class="badge ms-1"
-                                    :class="estadoCuentaData.pagos_pendientes?.length > 0 ? 'bg-warning text-dark' : 'bg-secondary'">
-                                    {{ estadoCuentaData.pagos_pendientes?.length || 0 }}
-                                </span>
-                            </button>
-                        </li>
-                    </ul>
+                    <!-- SECCIÓN: Movimientos -->
+                    <div class="mb-4">
+                        <h5 class="fw-bold mb-3 border-bottom pb-2">
+                            <i class="bi bi-list-ul me-2"></i>Movimientos
+                        </h5>
 
-                    <!-- TAB: Movimientos -->
-                    <div v-if="estadoCuentaTabActiva === 'movimientos'">
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-dark">
-                                    <tr>
-                                        <th style="width: 12%">Fecha</th>
-                                        <th style="width: 38%">Proceso</th>
-                                        <th style="width: 15%" class="text-end">Debe</th>
-                                        <th style="width: 15%" class="text-end">Haber</th>
-                                        <th style="width: 20%" class="text-end">Saldo</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <template v-for="mov in movimientosPaginados" :key="mov.numero">
-                                        <!-- Fila de Factura -->
-                                        <tr v-if="mov.tipo === 'factura'" class="table-secondary">
-                                            <td>{{ mov.fecha }}</td>
-                                            <td>{{ mov.descripcion }}</td>
-                                            <td class="text-end">${{ Number(mov.debe).toFixed(2) }}</td>
-                                            <td class="text-end text-muted">-</td>
-                                            <td class="text-end fw-bold">${{ Number(mov.saldo).toFixed(2) }}</td>
-                                        </tr>
-                                        <!-- Fila de Pago (solo PROCESADOS) -->
-                                        <tr v-else class="table-secondary">
-                                            <td>{{ mov.fecha }}</td>
-                                            <td>
-                                                {{ mov.descripcion }}
-                                                <span class="badge bg-success ms-2">PROCESADO</span>
-                                            </td>
-                                            <td class="text-end text-muted">-</td>
-                                            <td class="text-end fw-bold text-success">${{
-                                                Number(mov.haber).toFixed(2) }}</td>
-                                            <td class="text-end fw-bold">${{ Number(mov.saldo).toFixed(2) }}</td>
-                                        </tr>
-                                        <!-- Subfilas de facturas incluidas en el pago -->
-                                        <tr v-if="mov.tipo === 'pago' && mov.detalles && mov.detalles.length > 0"
-                                            v-for="det in mov.detalles" :key="det.numero_factura"
-                                            class="bg-white small text-muted">
-                                            <td></td>
-                                            <td class="ps-4">
-                                                <i class="bi bi-arrow-return-right me-1"></i>
-                                                Factura {{ formatFactura(det.numero_factura) }}: ${{
-                                                    Number(det.monto).toFixed(2) }}
-                                            </td>
-                                            <td></td>
-                                            <td></td>
-                                            <td></td>
-                                        </tr>
-                                    </template>
-                                </tbody>
-                                <tfoot class="table-dark">
-                                    <tr>
-                                        <td colspan="2" class="text-end fw-bold">TOTAL</td>
-                                        <td class="text-end fw-bold">${{ Number(estadoCuentaData.totales?.debe ||
-                                            0).toFixed(2) }}</td>
-                                        <td class="text-end fw-bold">${{ Number(estadoCuentaData.totales?.haber ||
-                                            0).toFixed(2) }}</td>
-                                        <td></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-
-                        <!-- Paginación -->
-                        <nav v-if="movimientosTotalPaginas > 1" class="d-flex justify-content-center mt-4">
-                            <ul class="pagination mb-0">
-                                <li class="page-item" :class="{ disabled: estadoCuentaPaginaActual === 1 }">
-                                    <button class="page-link" @click="estadoCuentaPaginaActual--"
-                                        :disabled="estadoCuentaPaginaActual === 1">
-                                        <i class="bi bi-chevron-left"></i>
-                                    </button>
-                                </li>
-                                <li v-for="p in movimientosTotalPaginas" :key="p" class="page-item"
-                                    :class="{ active: estadoCuentaPaginaActual === p }">
-                                    <button class="page-link" @click="estadoCuentaPaginaActual = p">{{ p }}</button>
-                                </li>
-                                <li class="page-item"
-                                    :class="{ disabled: estadoCuentaPaginaActual === movimientosTotalPaginas }">
-                                    <button class="page-link" @click="estadoCuentaPaginaActual++"
-                                        :disabled="estadoCuentaPaginaActual === movimientosTotalPaginas">
-                                        <i class="bi bi-chevron-right"></i>
-                                    </button>
-                                </li>
-                            </ul>
-                        </nav>
-                    </div>
-
-                    <!-- TAB: Pagos Pendientes -->
-                    <div v-if="estadoCuentaTabActiva === 'pendientes'">
-                        <div v-if="estadoCuentaData.pagos_pendientes?.length > 0">
-                            <div class="alert alert-warning mb-3">
-                                <i class="bi bi-exclamation-triangle me-2"></i>
-                                <strong>Nota:</strong> Los pagos pendientes no afectan el saldo final hasta que sean
-                                procesados.
-                            </div>
+                        <div>
                             <div class="table-responsive">
                                 <table class="table table-hover mb-0">
-                                    <thead style="background-color: #ffc107; color: #212529;">
+                                    <thead class="table-dark">
                                         <tr>
                                             <th style="width: 12%">Fecha</th>
-                                            <th>Descripción</th>
-                                            <th style="width: 18%" class="text-end">Monto Individual</th>
-                                            <th style="width: 15%" class="text-end">Monto Total</th>
+                                            <th style="width: 38%">Proceso</th>
+                                            <th style="width: 15%" class="text-end">Debe</th>
+                                            <th style="width: 15%" class="text-end">Haber</th>
+                                            <th style="width: 20%" class="text-end">Saldo</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <template v-for="pago in estadoCuentaData.pagos_pendientes" :key="pago.numero">
-                                            <tr style="background-color: #fff3cd;">
-                                                <td>{{ pago.fecha }}</td>
-                                                <td>{{ pago.descripcion }}</td>
+                                        <template v-for="mov in movimientosPaginados" :key="mov.numero">
+                                            <!-- Fila de Factura -->
+                                            <tr v-if="mov.tipo === 'factura'" class="table-secondary">
+                                                <td>{{ mov.fecha }}</td>
+                                                <td>{{ mov.descripcion }}</td>
+                                                <td class="text-end">${{ Number(mov.debe).toFixed(2) }}</td>
                                                 <td class="text-end text-muted">-</td>
-                                                <td class="text-end fw-bold" style="color: #b8860b;">${{
-                                                    Number(pago.haber).toFixed(2) }}</td>
+                                                <td class="text-end fw-bold">${{ Number(mov.saldo).toFixed(2) }}</td>
                                             </tr>
-                                            <!-- Subfilas de facturas incluidas en el pago pendiente -->
-                                            <tr v-if="pago.detalles && pago.detalles.length > 0"
-                                                v-for="det in pago.detalles" :key="det.numero_factura"
+                                            <!-- Fila de Pago (solo PROCESADOS) -->
+                                            <tr v-else class="table-secondary">
+                                                <td>{{ mov.fecha }}</td>
+                                                <td>
+                                                    {{ mov.descripcion }}
+                                                    <span class="badge bg-success ms-2">PROCESADO</span>
+                                                </td>
+                                                <td class="text-end text-muted">-</td>
+                                                <td class="text-end fw-bold text-success">${{
+                                                    Number(mov.haber).toFixed(2) }}</td>
+                                                <td class="text-end fw-bold">${{ Number(mov.saldo).toFixed(2) }}</td>
+                                            </tr>
+                                            <!-- Subfilas de facturas incluidas en el pago -->
+                                            <tr v-if="mov.tipo === 'pago' && mov.detalles && mov.detalles.length > 0"
+                                                v-for="det in mov.detalles" :key="det.numero_factura"
                                                 class="bg-white small text-muted">
                                                 <td></td>
                                                 <td class="ps-4">
                                                     <i class="bi bi-arrow-return-right me-1"></i>
-                                                    Factura {{ formatFactura(det.numero_factura) }}
+                                                    Factura {{ formatFactura(det.numero_factura) }}: ${{
+                                                        Number(det.monto).toFixed(2) }}
                                                 </td>
-                                                <td class="text-end">${{ Number(det.monto).toFixed(2) }}</td>
+                                                <td></td>
+                                                <td></td>
                                                 <td></td>
                                             </tr>
                                         </template>
                                     </tbody>
-                                    <tfoot style="background-color: #ffc107; color: #212529;">
+                                    <tfoot class="table-dark">
                                         <tr>
-                                            <td colspan="3" class="text-end fw-bold">TOTAL PENDIENTE</td>
-                                            <td class="text-end fw-bold" style="color: #856404;">${{
-                                                Number(estadoCuentaData.totales?.pendientes || 0).toFixed(2) }}</td>
+                                            <td colspan="2" class="text-end fw-bold">TOTAL</td>
+                                            <td class="text-end fw-bold">${{ Number(estadoCuentaData.totales?.debe ||
+                                                0).toFixed(2) }}</td>
+                                            <td class="text-end fw-bold">${{ Number(estadoCuentaData.totales?.haber ||
+                                                0).toFixed(2) }}</td>
+                                            <td></td>
                                         </tr>
                                     </tfoot>
                                 </table>
                             </div>
-                        </div>
-                        <div v-else class="text-center text-muted py-5">
-                            <i class="bi bi-check-circle fs-1 text-success"></i>
-                            <p class="mt-2">No hay pagos pendientes de procesamiento.</p>
+
+                            <!-- Paginación -->
+                            <nav v-if="movimientosTotalPaginas > 1" class="d-flex justify-content-center mt-4">
+                                <ul class="pagination mb-0">
+                                    <li class="page-item" :class="{ disabled: estadoCuentaPaginaActual === 1 }">
+                                        <button class="page-link" @click="estadoCuentaPaginaActual--"
+                                            :disabled="estadoCuentaPaginaActual === 1">
+                                            <i class="bi bi-chevron-left"></i>
+                                        </button>
+                                    </li>
+                                    <li v-for="p in movimientosTotalPaginas" :key="p" class="page-item"
+                                        :class="{ active: estadoCuentaPaginaActual === p }">
+                                        <button class="page-link" @click="estadoCuentaPaginaActual = p">{{ p }}</button>
+                                    </li>
+                                    <li class="page-item"
+                                        :class="{ disabled: estadoCuentaPaginaActual === movimientosTotalPaginas }">
+                                        <button class="page-link" @click="estadoCuentaPaginaActual++"
+                                            :disabled="estadoCuentaPaginaActual === movimientosTotalPaginas">
+                                            <i class="bi bi-chevron-right"></i>
+                                        </button>
+                                    </li>
+                                </ul>
+                            </nav>
                         </div>
                     </div>
 
-                    <!-- Saldo Final -->
-                    <div class="border border-success rounded p-3 mt-4 text-center">
-                        <div class="text-muted small mb-2">
-                            SALDO FINAL = Saldo Inicial + Total Debe − Total Haber
+                    <!-- SECCIÓN: Pagos Pendientes -->
+                    <div class="mt-5">
+                        <h5 class="fw-bold mb-3 border-bottom pb-2">
+                            <i class="bi bi-clock-history me-2"></i>Pagos Pendientes
+                        </h5>
+                        <div>
+                            <div v-if="estadoCuentaData.pagos_pendientes?.length > 0">
+                                <div class="alert alert-warning mb-3">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                    <strong>Nota:</strong> Los pagos pendientes no afectan el saldo final hasta que
+                                    sean
+                                    procesados.
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead style="background-color: #ffc107; color: #212529;">
+                                            <tr>
+                                                <th style="width: 12%">Fecha</th>
+                                                <th>Descripción</th>
+                                                <th style="width: 18%" class="text-end">Monto Individual</th>
+                                                <th style="width: 15%" class="text-end">Monto Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template v-for="pago in estadoCuentaData.pagos_pendientes"
+                                                :key="pago.numero">
+                                                <tr style="background-color: #fff3cd;">
+                                                    <td>{{ pago.fecha }}</td>
+                                                    <td>{{ pago.descripcion }}</td>
+                                                    <td class="text-end text-muted">-</td>
+                                                    <td class="text-end fw-bold" style="color: #b8860b;">${{
+                                                        Number(pago.haber).toFixed(2) }}</td>
+                                                </tr>
+                                                <!-- Subfilas de facturas incluidas en el pago pendiente -->
+                                                <tr v-if="pago.detalles && pago.detalles.length > 0"
+                                                    v-for="det in pago.detalles" :key="det.numero_factura"
+                                                    class="bg-white small text-muted">
+                                                    <td></td>
+                                                    <td class="ps-4">
+                                                        <i class="bi bi-arrow-return-right me-1"></i>
+                                                        Factura {{ formatFactura(det.numero_factura) }}
+                                                    </td>
+                                                    <td class="text-end">${{ Number(det.monto).toFixed(2) }}</td>
+                                                    <td></td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                        <tfoot style="background-color: #ffc107; color: #212529;">
+                                            <tr>
+                                                <td colspan="3" class="text-end fw-bold">TOTAL PENDIENTE</td>
+                                                <td class="text-end fw-bold" style="color: #856404;">${{
+                                                    Number(estadoCuentaData.totales?.pendientes || 0).toFixed(2) }}
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                            <div v-else class="text-center text-muted py-5">
+                                <i class="bi bi-check-circle fs-1 text-success"></i>
+                                <p class="mt-2">No hay pagos pendientes de procesamiento.</p>
+                            </div>
                         </div>
-                        <div class="text-muted small mb-2">
-                            ${{ Number(estadoCuentaData.saldo_inicial).toFixed(2) }} +
-                            ${{ Number(estadoCuentaData.totales?.debe || 0).toFixed(2) }} −
-                            ${{ Number(estadoCuentaData.totales?.haber || 0).toFixed(2) }}
-                        </div>
-                        <div class="text-success small fw-bold">SALDO FINAL</div>
-                        <div class="fs-2 fw-bold text-success">${{ Number(estadoCuentaData.saldo_final).toFixed(2) }}
+
+                        <!-- Saldo Final -->
+                        <div class="border border-success rounded p-3 mt-4 text-center">
+                            <div class="text-muted small mb-2">
+                                SALDO TOTAL = Saldo Inicial + Total Debe − Total Haber
+                            </div>
+                            <div class="text-muted small mb-2">
+                                ${{ Number(estadoCuentaData.saldo_inicial).toFixed(2) }} +
+                                ${{ Number(estadoCuentaData.totales?.debe || 0).toFixed(2) }} −
+                                ${{ Number(estadoCuentaData.totales?.haber || 0).toFixed(2) }}
+                            </div>
+                            <div class="text-success small fw-bold">SALDO TOTAL A PAGAR</div>
+                            <div class="fs-2 fw-bold text-success">${{
+                                Number(estadoCuentaData.saldo_final).toFixed(2) }}
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
 
             <div v-else class="empty-state text-center py-5">
                 <div class="mb-4">
@@ -1020,7 +1014,8 @@ const validarReporteGeneradoEstado = (): boolean => {
                                             </button>
                                         </td>
                                         <td>
-                                            <span class="fw-medium">{{ obtenerNombreCliente(doc.cedula) }}</span>
+                                            <span class="fw-medium">{{ obtenerNombreCliente(doc.cedula)
+                                            }}</span>
                                             <small v-if="doc.cedula !== 'todos'" class="text-muted d-block">{{
                                                 doc.cedula }}</small>
                                         </td>
@@ -1043,7 +1038,8 @@ const validarReporteGeneradoEstado = (): boolean => {
                                 </li>
                                 <li v-for="p in historialTotalPaginas" :key="p" class="page-item"
                                     :class="{ active: historialPaginaActual === p }">
-                                    <button class="page-link" @click="historialPaginaActual = p">{{ p }}</button>
+                                    <button class="page-link" @click="historialPaginaActual = p">{{ p
+                                    }}</button>
                                 </li>
                                 <li class="page-item"
                                     :class="{ disabled: historialPaginaActual === historialTotalPaginas }">
@@ -1056,7 +1052,8 @@ const validarReporteGeneradoEstado = (): boolean => {
                         </nav>
 
                         <div class="text-muted small text-center mt-2">
-                            Mostrando {{ historialPaginados.length }} de {{ historialDocumentosFiltrados.length }}
+                            Mostrando {{ historialPaginados.length }} de {{ historialDocumentosFiltrados.length
+                            }}
                             documentos
                         </div>
                     </div>
