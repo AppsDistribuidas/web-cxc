@@ -222,4 +222,16 @@ const getOptionLabel = (option: Cliente) => {
 .cliente-autocomplete.is-invalid :deep(.vs__dropdown-toggle) {
     border-color: #dc3545;
 }
+
+/* Mejora de contraste en Hover/Highlight */
+:deep(.vs__dropdown-option--highlight) {
+    background: #0d6efd;
+    /* Azul primario */
+    color: #fff;
+}
+
+:deep(.vs__dropdown-option--highlight) .cliente-cedula,
+:deep(.vs__dropdown-option--highlight) .cliente-nombre {
+    color: #fff !important;
+}
 </style>

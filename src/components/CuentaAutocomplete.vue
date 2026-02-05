@@ -225,7 +225,13 @@ const getOptionLabel = (option: Cuenta) => {
 }
 
 :deep(.vs__dropdown-option--highlight) {
-    background: rgba(13, 110, 253, 0.08);
-    color: inherit;
+    background: #0d6efd;
+    /* Azul primario */
+    color: #fff;
+}
+
+:deep(.vs__dropdown-option--highlight) .cuenta-codigo,
+:deep(.vs__dropdown-option--highlight) .cuenta-banco {
+    color: #fff !important;
 }
 </style>
