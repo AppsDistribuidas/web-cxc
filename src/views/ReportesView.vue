@@ -507,14 +507,19 @@ const validarReporteGeneradoEstado = (): boolean => {
 </style>
 
 <template>
-    <div class="container mt-4">
-        <h2 class="mb-4">Reportes y Consultas</h2>
+    <div class="container mt-4 mb-5">
+        <!-- Header consistente con otras vistas -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="text-primary mb-1">Reportes y Consultas</h2>
+                <p class="text-muted small mb-0">Generación de reportes de pagos y estados de cuenta</p>
+            </div>
+        </div>
 
         <ul class="nav nav-tabs mb-4" role="tablist">
             <li v-if="can('Reporte de Pagos')" class="nav-item" role="presentation">
                 <a class="nav-link" :class="{ active: activeTab === 'pagos' }" href="#"
-                    @click.prevent="activeTab = 'pagos'"
-                    role="tab" :aria-selected="activeTab === 'pagos'"
+                    @click.prevent="activeTab = 'pagos'" role="tab" :aria-selected="activeTab === 'pagos'"
                     aria-controls="panel-pagos" id="tab-pagos">
                     <i class="bi bi-receipt me-1" aria-hidden="true"></i>
                     Reporte de Pagos
@@ -522,8 +527,7 @@ const validarReporteGeneradoEstado = (): boolean => {
             </li>
             <li v-if="can('Reporte Estado de Cuenta')" class="nav-item" role="presentation">
                 <a class="nav-link" :class="{ active: activeTab === 'estadoCuenta' }" href="#"
-                    @click.prevent="activeTab = 'estadoCuenta'"
-                    role="tab" :aria-selected="activeTab === 'estadoCuenta'"
+                    @click.prevent="activeTab = 'estadoCuenta'" role="tab" :aria-selected="activeTab === 'estadoCuenta'"
                     aria-controls="panel-estado" id="tab-estado">
                     <i class="bi bi-file-earmark-bar-graph me-1" aria-hidden="true"></i>
                     Estado de Cuenta
@@ -532,8 +536,8 @@ const validarReporteGeneradoEstado = (): boolean => {
         </ul>
 
         <!-- CONTENIDO PESTAÑA: PAGOS -->
-        <div v-if="activeTab === 'pagos' && can('Reporte de Pagos')" 
-            id="panel-pagos" role="tabpanel" aria-labelledby="tab-pagos">
+        <div v-if="activeTab === 'pagos' && can('Reporte de Pagos')" id="panel-pagos" role="tabpanel"
+            aria-labelledby="tab-pagos">
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
                     <div class="row g-3 align-items-end">
@@ -544,10 +548,8 @@ const validarReporteGeneradoEstado = (): boolean => {
                                 Buscar Cliente (Opcional)
                             </label>
                             <input v-model="pagosAutocompletar" list="dlPagosUniforme" class="form-control"
-                                id="pagosCliente"
-                                placeholder="Escriba cédula o nombre..." 
-                                @change="seleccionarClientePagos"
-                                @blur="seleccionarClientePagos"
+                                id="pagosCliente" placeholder="Escriba cédula o nombre..."
+                                @change="seleccionarClientePagos" @blur="seleccionarClientePagos"
                                 aria-label="Buscar cliente por nombre o cédula"
                                 title="Deje vacío para incluir todos los clientes, o busque uno específico">
                             <datalist id="dlPagosUniforme">
@@ -556,7 +558,8 @@ const validarReporteGeneradoEstado = (): boolean => {
                             </datalist>
                             <div class="form-text"
                                 :class="nombreClienteSeleccionadoPagos ? 'text-primary' : 'text-muted'">
-                                <i class="bi bi-person-check me-1" v-if="nombreClienteSeleccionadoPagos" aria-hidden="true"></i>
+                                <i class="bi bi-person-check me-1" v-if="nombreClienteSeleccionadoPagos"
+                                    aria-hidden="true"></i>
                                 {{ nombreClienteSeleccionadoPagos || 'Todos los clientes' }}
                             </div>
                         </div>
@@ -566,19 +569,19 @@ const validarReporteGeneradoEstado = (): boolean => {
                                 Fecha Inicio
                             </label>
                             <input v-model="pagosFilter.fecha_inicio" type="date" class="form-control"
-                                id="pagosFechaInicio"
-                                aria-label="Fecha de inicio del reporte"
+                                id="pagosFechaInicio" aria-label="Fecha de inicio del reporte"
                                 title="Fecha desde la cual se incluirán los pagos">
+                            <div class="form-text invisible">-</div>
                         </div>
                         <div class="col-6 col-md-2">
                             <label class="form-label fw-bold" for="pagosFechaFin">
                                 <i class="bi bi-calendar me-1" aria-hidden="true"></i>
                                 Fecha Fin
                             </label>
-                            <input v-model="pagosFilter.fecha_fin" type="date" class="form-control"
-                                id="pagosFechaFin"
+                            <input v-model="pagosFilter.fecha_fin" type="date" class="form-control" id="pagosFechaFin"
                                 aria-label="Fecha de fin del reporte"
                                 title="Fecha hasta la cual se incluirán los pagos">
+                            <div class="form-text invisible">-</div>
                         </div>
                         <!-- Botones de acción al final -->
                         <div class="col-12 col-md-4">
@@ -596,12 +599,12 @@ const validarReporteGeneradoEstado = (): boolean => {
                                     <i class="bi bi-file-pdf" aria-hidden="true"></i> PDF
                                 </button>
                                 <button @click="generarReportePagos('json')" class="btn btn-primary flex-grow-1"
-                                    :disabled="pagosLoading"
-                                    title="Generar y visualizar el reporte de pagos"
+                                    :disabled="pagosLoading" title="Generar y visualizar el reporte de pagos"
                                     aria-label="Generar reporte de pagos">
                                     <i class="bi bi-lightning-charge" aria-hidden="true"></i> Generar
                                 </button>
                             </div>
+                            <div class="form-text invisible">-</div>
                         </div>
                     </div>
                 </div>
@@ -722,8 +725,8 @@ const validarReporteGeneradoEstado = (): boolean => {
         </div>
 
         <!-- CONTENIDO PESTAÑA: ESTADO DE CUENTA -->
-        <div v-if="activeTab === 'estadoCuenta' && can('Reporte Estado de Cuenta')"
-            id="panel-estado" role="tabpanel" aria-labelledby="tab-estado">
+        <div v-if="activeTab === 'estadoCuenta' && can('Reporte Estado de Cuenta')" id="panel-estado" role="tabpanel"
+            aria-labelledby="tab-estado">
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
                     <div class="row g-3 align-items-end">
@@ -734,10 +737,8 @@ const validarReporteGeneradoEstado = (): boolean => {
                                 Cliente <span class="text-danger">*</span>
                             </label>
                             <input v-model="estadoCuentaAutocompletar" list="dlEstado" class="form-control"
-                                id="estadoCliente"
-                                placeholder="Escriba cédula o nombre..." 
-                                @change="seleccionarClienteEstado"
-                                @blur="seleccionarClienteEstado"
+                                id="estadoCliente" placeholder="Escriba cédula o nombre..."
+                                @change="seleccionarClienteEstado" @blur="seleccionarClienteEstado"
                                 aria-label="Buscar cliente por nombre o cédula (requerido)"
                                 title="Seleccione el cliente para generar su estado de cuenta"
                                 :aria-invalid="!estadoCuentaFilter.cedula_cliente">
@@ -746,7 +747,8 @@ const validarReporteGeneradoEstado = (): boolean => {
                                     c.nombre }}</option>
                             </datalist>
                             <div class="form-text" :class="nombreClienteSeleccionado ? 'text-primary' : 'text-danger'">
-                                <i :class="nombreClienteSeleccionado ? 'bi bi-person-check' : 'bi bi-exclamation-circle'" class="me-1" aria-hidden="true"></i>
+                                <i :class="nombreClienteSeleccionado ? 'bi bi-person-check' : 'bi bi-exclamation-circle'"
+                                    class="me-1" aria-hidden="true"></i>
                                 {{ nombreClienteSeleccionado || 'Seleccione un cliente' }}
                             </div>
                         </div>
@@ -756,9 +758,9 @@ const validarReporteGeneradoEstado = (): boolean => {
                                 Fecha Inicio
                             </label>
                             <input v-model="estadoCuentaFilter.fecha_inicio" type="date" class="form-control"
-                                id="estadoFechaInicio"
-                                aria-label="Fecha de inicio del estado de cuenta"
+                                id="estadoFechaInicio" aria-label="Fecha de inicio del estado de cuenta"
                                 title="Período desde el cual se incluirán los movimientos">
+                            <div class="form-text invisible">-</div>
                         </div>
                         <div class="col-6 col-md-2">
                             <label class="form-label fw-bold" for="estadoFechaFin">
@@ -766,9 +768,9 @@ const validarReporteGeneradoEstado = (): boolean => {
                                 Fecha Fin
                             </label>
                             <input v-model="estadoCuentaFilter.fecha_fin" type="date" class="form-control"
-                                id="estadoFechaFin"
-                                aria-label="Fecha de fin del estado de cuenta"
+                                id="estadoFechaFin" aria-label="Fecha de fin del estado de cuenta"
                                 title="Período hasta el cual se incluirán los movimientos">
+                            <div class="form-text invisible">-</div>
                         </div>
                         <!-- Botones de acción al final -->
                         <div class="col-12 col-md-4">
@@ -793,6 +795,7 @@ const validarReporteGeneradoEstado = (): boolean => {
                                     <i class="bi bi-lightning-charge" aria-hidden="true"></i> Generar
                                 </button>
                             </div>
+                            <div class="form-text invisible">-</div>
                         </div>
                     </div>
                 </div>

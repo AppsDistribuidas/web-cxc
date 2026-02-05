@@ -570,8 +570,7 @@ const guardar = async () => {
                                         @blur="seleccionarClientePorCedula" list="clientesList" type="text"
                                         class="form-control" id="clienteInput"
                                         :placeholder="isEditing ? '' : 'Ingrese cédula o seleccione...'"
-                                        :disabled="isEditing" required
-                                        aria-label="Buscar cliente por cédula o nombre"
+                                        :disabled="isEditing" required aria-label="Buscar cliente por cédula o nombre"
                                         title="Escriba la cédula del cliente o parte de su nombre. Se autocompletará con sugerencias" />
 
                                     <datalist id="clientesList">
@@ -590,8 +589,7 @@ const guardar = async () => {
                                     <label class="form-label fw-bold" for="fechaPago">
                                         <i class="bi bi-calendar-event me-1" aria-hidden="true"></i>Fecha Pago
                                     </label>
-                                    <input v-model="form.fecha" type="date" class="form-control" 
-                                        id="fechaPago" required
+                                    <input v-model="form.fecha" type="date" class="form-control" id="fechaPago" required
                                         aria-label="Fecha del pago"
                                         title="Seleccione la fecha en que se realizó el pago">
                                 </div>
@@ -601,9 +599,8 @@ const guardar = async () => {
                                         <i class="bi bi-bank me-1" aria-hidden="true"></i>Cuenta Bancaria
                                     </label>
                                     <input v-model="cuentaInput" @keyup.enter="seleccionarCuenta"
-                                        @blur="seleccionarCuenta" list="cuentasList" type="text" 
-                                        class="form-control" id="cuentaBancaria"
-                                        placeholder="Buscar cuenta o banco..." required
+                                        @blur="seleccionarCuenta" list="cuentasList" type="text" class="form-control"
+                                        id="cuentaBancaria" placeholder="Buscar cuenta o banco..." required
                                         aria-label="Buscar cuenta bancaria por código o nombre del banco"
                                         title="Escriba el código de cuenta o nombre del banco para buscar" />
 
@@ -623,9 +620,8 @@ const guardar = async () => {
                                     <label class="form-label fw-bold" for="descripcion">
                                         <i class="bi bi-card-text me-1" aria-hidden="true"></i>Descripción / Notas
                                     </label>
-                                    <input v-model="form.descripcion" type="text" class="form-control"
-                                        id="descripcion" placeholder="Opcional"
-                                        aria-label="Notas o descripción adicional del pago"
+                                    <input v-model="form.descripcion" type="text" class="form-control" id="descripcion"
+                                        placeholder="Opcional" aria-label="Notas o descripción adicional del pago"
                                         title="Campo opcional para agregar observaciones o referencias del pago">
                                 </div>
                             </div>
@@ -648,10 +644,29 @@ const guardar = async () => {
                                     Seleccione un cliente para ver sus facturas pendientes.
                                 </div>
 
-                                <!-- Loading de facturas -->
-                                <div v-if="cargandoFacturas" class="text-center py-4">
-                                    <span class="spinner-border text-primary me-2"></span>
-                                    <span class="text-muted">Cargando facturas del cliente...</span>
+                                <!-- Skeleton loading de facturas -->
+                                <div v-if="cargandoFacturas" class="py-3">
+                                    <div v-for="i in 4" :key="i" class="d-flex align-items-center py-2 border-bottom">
+                                        <div class="skeleton-box me-3"
+                                            style="width: 20px; height: 20px; border-radius: 4px;"></div>
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <div class="skeleton-box mb-1" style="width: 100px; height: 16px;">
+                                                    </div>
+                                                    <div class="skeleton-box" style="width: 180px; height: 12px;"></div>
+                                                </div>
+                                                <div class="text-end">
+                                                    <div class="skeleton-box mb-1" style="width: 80px; height: 16px;">
+                                                    </div>
+                                                    <div class="skeleton-box" style="width: 60px; height: 12px;"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-center text-muted small mt-2">
+                                        <i class="bi bi-clock-history me-1"></i>Cargando facturas del cliente...
+                                    </div>
                                 </div>
 
                                 <!-- Mensaje cuando no hay facturas (y no está cargando) -->
@@ -672,8 +687,7 @@ const guardar = async () => {
                                             aria-label="Buscar entre las facturas disponibles"
                                             title="Filtre facturas por número o monto para encontrar más rápido">
                                         <button v-if="busquedaFactura" type="button" class="btn btn-outline-secondary"
-                                            @click="busquedaFactura = ''"
-                                            aria-label="Limpiar búsqueda de facturas"
+                                            @click="busquedaFactura = ''" aria-label="Limpiar búsqueda de facturas"
                                             title="Limpiar filtro de búsqueda">
                                             <i class="bi bi-x-lg" aria-hidden="true"></i>
                                         </button>
@@ -806,8 +820,7 @@ const guardar = async () => {
                                     class="bi bi-exclamation-circle me-1"></i> {{ error }}</div>
 
                             <div class="d-flex flex-column flex-sm-row justify-content-end gap-2 mt-4">
-                                <button type="button" @click="router.push('/pagos')" 
-                                    class="btn btn-outline-secondary"
+                                <button type="button" @click="router.push('/pagos')" class="btn btn-outline-secondary"
                                     aria-label="Cancelar y volver a la lista de pagos"
                                     title="Descarta los cambios y regresa a la lista de pagos">
                                     <i class="bi bi-x-lg me-1" aria-hidden="true"></i>Cancelar
@@ -816,7 +829,8 @@ const guardar = async () => {
                                     :disabled="saving || cantidadSeleccionadas === 0"
                                     :aria-label="isEditing ? 'Guardar cambios del pago' : 'Registrar nuevo pago'"
                                     :title="cantidadSeleccionadas === 0 ? 'Seleccione al menos una factura para continuar' : (isEditing ? 'Actualizar el pago con los cambios realizados' : 'Finalizar el registro del nuevo pago')">
-                                    <span v-if="saving" class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                                    <span v-if="saving" class="spinner-border spinner-border-sm me-2"
+                                        aria-hidden="true"></span>
                                     <i v-else class="bi bi-check-lg me-1" aria-hidden="true"></i>
                                     {{ isEditing ? 'Actualizar Pago' : 'Finalizar Pago' }}
                                 </button>
