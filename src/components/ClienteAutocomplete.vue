@@ -106,10 +106,13 @@ const getOptionLabel = (option: Cliente) => {
             </template>
         </vSelect>
 
-        <!-- Información adicional del cliente seleccionado (estilo nativo) -->
-        <div v-if="selectedCliente" class="form-text mt-1 text-success">
-            <i class="bi bi-check-circle me-1"></i>
-            Cliente: <strong>{{ selectedCliente.nombre }}</strong>
+        <!-- Placeholder para mantener altura constante del componente -->
+        <div class="form-text mt-1" :class="selectedCliente ? 'text-success' : 'invisible'">
+            <template v-if="selectedCliente">
+                <i class="bi bi-check-circle me-1"></i>
+                Cliente: <strong>{{ selectedCliente.nombre }}</strong>
+            </template>
+            <template v-else>Seleccione un Cliente</template>
         </div>
     </div>
 </template>

@@ -104,10 +104,13 @@ const getOptionLabel = (option: Cuenta) => {
             </template>
         </vSelect>
 
-        <!-- Información adicional del banco seleccionado (estilo nativo) -->
-        <div v-if="selectedCuenta" class="form-text mt-1 text-success">
-            <i class="bi bi-check-circle me-1"></i>
-            Banco: <strong>{{ selectedCuenta.entidad_bancaria?.nombre }}</strong>
+        <!-- Placeholder para mantener altura constante del componente -->
+        <div class="form-text mt-1" :class="selectedCuenta ? 'text-success' : 'invisible'">
+            <template v-if="selectedCuenta">
+                <i class="bi bi-check-circle me-1"></i>
+                Banco: <strong>{{ selectedCuenta.entidad_bancaria?.nombre }}</strong>
+            </template>
+            <template v-else>Seleccione una Cuenta</template>
         </div>
     </div>
 </template>
