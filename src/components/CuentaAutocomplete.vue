@@ -78,7 +78,7 @@ const getOptionLabel = (option: Cuenta) => {
         <vSelect :modelValue="selectedCuenta" @update:modelValue="onSelect" :options="cuentas" :filterable="true"
             :filter="filterCuentas" @search="onSearch" @search:blur="onSearchBlur" :get-option-label="getOptionLabel"
             :placeholder="placeholder || 'Buscar cuenta...'" :disabled="disabled" :clearable="true"
-            class="cuenta-select">
+            class="cuenta-select" :class="{ 'has-selection': selectedCuenta }">
             <!-- Slot para cada opción en el dropdown -->
             <template #option="{ codigo, entidad_bancaria }">
                 <div class="cuenta-option">
@@ -199,6 +199,11 @@ const getOptionLabel = (option: Cuenta) => {
 
 :deep(.vs__open-indicator) {
     fill: #6c757d;
+}
+
+/* Ocultar chevron cuando hay selección - solo mostrar X para borrar */
+.has-selection :deep(.vs__open-indicator) {
+    display: none;
 }
 
 /* Estilos adicionales para dropdown menu */

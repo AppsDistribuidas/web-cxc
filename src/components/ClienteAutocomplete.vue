@@ -80,7 +80,7 @@ const getOptionLabel = (option: Cliente) => {
         <vSelect :modelValue="selectedCliente" @update:modelValue="onSelect" :options="clientes" :filterable="true"
             :filter="filterClientes" @search="onSearch" @search:blur="onSearchBlur" :get-option-label="getOptionLabel"
             :placeholder="placeholder || 'Escriba cédula o nombre...'" :disabled="disabled" :clearable="true"
-            class="cliente-select">
+            class="cliente-select" :class="{ 'has-selection': selectedCliente }">
             <!-- Slot para cada opción en el dropdown -->
             <template #option="{ cedula, nombre }">
                 <div class="cliente-option">
@@ -206,5 +206,10 @@ const getOptionLabel = (option: Cliente) => {
 
 :deep(.vs__open-indicator) {
     fill: #6c757d;
+}
+
+/* Ocultar chevron cuando hay selección - solo mostrar X para borrar */
+.has-selection :deep(.vs__open-indicator) {
+    display: none;
 }
 </style>
