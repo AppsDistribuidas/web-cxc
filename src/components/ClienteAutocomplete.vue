@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 // @ts-ignore
 import vSelect from 'vue-select';
 import 'vue-select/dist/vue-select.css';
@@ -22,6 +22,9 @@ const emit = defineEmits<{
     (e: 'update:modelValue', value: string): void;
     (e: 'select', cliente: Cliente | null): void;
 }>();
+
+// Generar ID único para accesibilidad
+const uid = `cliente-select-${Math.random().toString(36).substr(2, 9)}`;
 
 // Computed para encontrar el cliente seleccionado actual
 const selectedCliente = computed(() => {
@@ -74,13 +77,14 @@ const getOptionLabel = (option: Cliente) => {
 
 <template>
     <div class="cliente-autocomplete">
-        <label v-if="label" class="form-label fw-bold">
+        <label v-if="label" :for="uid" class="form-label fw-bold">
             <i class="bi bi-person-fill me-1" aria-hidden="true"></i>{{ label }}
         </label>
-        <vSelect :modelValue="selectedCliente" @update:modelValue="onSelect" :options="clientes" :filterable="true"
-            :filter="filterClientes" @search="onSearch" @search:blur="onSearchBlur" :get-option-label="getOptionLabel"
-            :placeholder="placeholder || 'Escriba cédula o nombre...'" :disabled="disabled" :clearable="true"
-            class="cliente-select" :class="{ 'has-selection': selectedCliente }">
+        <vSelect :inputId="uid" :modelValue="selectedCliente" @update:modelValue="onSelect" :options="clientes"
+            :filterable="true" :filter="filterClientes" @search="onSearch" @search:blur="onSearchBlur"
+            :get-option-label="getOptionLabel" :placeholder="placeholder || 'Escriba cédula o nombre...'"
+            :disabled="disabled" :clearable="true" class="cliente-select" :class="{ 'has-selection': selectedCliente }"
+            aria-label="Buscar cliente por cédula o nombre">
             <!-- Slot para cada opción en el dropdown -->
             <template #option="{ cedula, nombre }">
                 <div class="cliente-option">
@@ -209,7 +213,13 @@ const getOptionLabel = (option: Cliente) => {
 }
 
 /* Ocultar chevron cuando hay selección - solo mostrar X para borrar */
+/* Ocultar chevron cuando hay selección - solo mostrar X para borrar */
 .has-selection :deep(.vs__open-indicator) {
     display: none;
+}
+
+/* Estado de error: borde rojo cuando el componente tiene clase is-invalid */
+.cliente-autocomplete.is-invalid :deep(.vs__dropdown-toggle) {
+    border-color: #dc3545;
 }
 </style>

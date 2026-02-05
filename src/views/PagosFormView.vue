@@ -35,71 +35,17 @@ const error = ref<string | null>(null);
 const estadoPago = ref<boolean | null>(null);
 const fechaImpresion = ref<string | null>(null);
 
-// Cliente input helper
-const cedulaInput = ref('');
-const selectedClientName = ref('');
-
-// Helper states limpios
-// Variables limpias
-// (cedulaInput y selectedClientName se mantienen arriba)
-
 // Handler para CuentaAutocomplete
 const onCuentaSelect = (cuenta: Cuenta | null) => {
     // V-model ya actualiza el código
     // Aquí podemos añadir lógica adicional si se requiere en el futuro
 };
 
-// Computed para filtrar la lista de clientes sugeridos
-const filteredClientes = computed(() => {
-    if (!cedulaInput.value) return clientesDisponibles.value.slice(0, 10);
-
-    const busqueda = cedulaInput.value.toLowerCase();
-    return clientesDisponibles.value.filter(c =>
-        c.cedula.includes(busqueda) ||
-        (c.nombre || '').toLowerCase().includes(busqueda)
-    ).slice(0, 10); // Limitar a 10 resultados irrelevantes para no saturar el DOM
-});
-
-const seleccionarClientePorCedula = async () => {
-    const v = (cedulaInput.value || '').toString().trim();
-    if (!v) {
-        form.value.cedula_cliente = '';
-        selectedClientName.value = '';
-        facturasDisponibles.value = [];
-        return;
-    }
-
-    // Buscar exact match por cédula
-    const found = clientesDisponibles.value.find(c => c.cedula === v);
-    if (found) {
-        form.value.cedula_cliente = found.cedula;
-        selectedClientName.value = found.nombre;
-        await cargarFacturasCliente();
-        return;
-    }
-
-    // Buscar por coincidencia parcial en nombre
-    const byName = clientesDisponibles.value.find(c => (c.nombre || '').toLowerCase().includes(v.toLowerCase()));
-    if (byName) {
-        form.value.cedula_cliente = byName.cedula;
-        cedulaInput.value = byName.cedula;
-        selectedClientName.value = byName.nombre;
-        await cargarFacturasCliente();
-        return;
-    }
-
-    // No encontrado: mantener valor y limpiar facturas
-    selectedClientName.value = '';
-    facturasDisponibles.value = [];
-};
-
 // Handler para ClienteAutocomplete
 const onClienteSelect = async (cliente: { cedula: string; nombre: string } | null) => {
     if (cliente) {
-        selectedClientName.value = cliente.nombre;
         await cargarFacturasCliente();
     } else {
-        selectedClientName.value = '';
         facturasDisponibles.value = [];
     }
 };
@@ -267,8 +213,8 @@ watch(() => form.value.cedula_cliente, () => {
     // Si estamos cargando datos de edición, NO borramos los detalles ni recargamos innecesariamente
     if (cargandoDatos.value) return;
 
-    // Sincronizar el input libre con el valor efectivo
-    cedulaInput.value = form.value.cedula_cliente || '';
+    // Sincronizar (ya no necesario manual input) -> Limpio
+    // cedulaInput.value = form.value.cedula_cliente || '';
 
     cargarFacturasCliente();
     // Limpiar selecciones previas
@@ -279,8 +225,9 @@ watch(() => form.value.cedula_cliente, () => {
 // Mantener input sincronizado cuando la lista de clientes cambie (por ejemplo al inicializar)
 watch(clientesDisponibles, () => {
     if (form.value.cedula_cliente) {
-        const found = clientesDisponibles.value.find(c => c.cedula === form.value.cedula_cliente);
-        selectedClientName.value = found ? found.nombre : '';
+        if (form.value.cedula_cliente) {
+            // El componente Autocomplete ya se encarga de mostrar el nombre si machea
+        }
     }
 });
 
@@ -343,11 +290,7 @@ onMounted(async () => {
                 })
             };
 
-            // Rellenamos el input visual de cédula con el mismo formato que en crear (Nombre (Cédula))
-            cedulaInput.value = data.nombre_cliente ? `${data.cedula_cliente}` : data.cedula_cliente;
-            selectedClientName.value = data.nombre_cliente ?? '';
-
-            // Rellenamos el input visual de cuenta bancaria
+            // Rellenamos el input visual de cédula -> El v-model lo maneja solo
             // La cuenta bancaria se vincula automáticamente vía v-model form.codigo_cuenta
             // No necesitamos setear cuentaInput manualmente porque el componente lee de form.codigo_cuenta
 
