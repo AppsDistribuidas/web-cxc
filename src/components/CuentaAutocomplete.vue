@@ -151,9 +151,12 @@ const getOptionLabel = (option: Cuenta) => {
 :deep(.vs__dropdown-toggle) {
     border: 1px solid #dee2e6;
     border-radius: 0.375rem;
-    padding: 0.375rem 0.75rem;
+    padding: 0 0.75rem;
+    height: 38px;
     min-height: 38px;
     background-color: #fff;
+    display: flex;
+    align-items: center;
     transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
 }
 
@@ -165,6 +168,11 @@ const getOptionLabel = (option: Cuenta) => {
 :deep(.vs__selected-options) {
     padding: 0;
     margin: 0;
+    display: flex;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    align-items: center;
+    width: 100%;
 }
 
 :deep(.vs__search) {

@@ -153,12 +153,15 @@ const getOptionLabel = (option: Cliente) => {
 /* Estilos globales de vue-select para igualar form-control de Bootstrap */
 :deep(.vs__dropdown-toggle) {
     border: 1px solid #dee2e6;
-    /* Borde bootstrap */
     border-radius: 0.375rem;
-    padding: 0.375rem 0.75rem;
-    /* Padding bootstrap form-control */
+    padding: 0 0.75rem;
+    /* Padding horizontal solamente, vertical controlado por flex */
+    height: 38px;
+    /* Altura fija igual a bootstrap form-control */
     min-height: 38px;
     background-color: #fff;
+    display: flex;
+    align-items: center;
     transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
 }
 
@@ -170,6 +173,11 @@ const getOptionLabel = (option: Cliente) => {
 :deep(.vs__selected-options) {
     padding: 0;
     margin: 0;
+    display: flex;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    align-items: center;
+    width: 100%;
 }
 
 :deep(.vs__search) {
