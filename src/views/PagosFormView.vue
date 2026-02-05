@@ -6,6 +6,7 @@ import { useSweetAlert } from '@/composables/useSweetAlert';
 import type { Cuenta } from '@/types/BankingTypes';
 import type { PagoPayload, DetallePago } from '@/types/PaymentTypes';
 import ClienteAutocomplete from '@/components/ClienteAutocomplete.vue';
+import CuentaAutocomplete from '@/components/CuentaAutocomplete.vue';
 
 const { showSuccess, showError, showWarning } = useSweetAlert();
 
@@ -38,50 +39,14 @@ const fechaImpresion = ref<string | null>(null);
 const cedulaInput = ref('');
 const selectedClientName = ref('');
 
-// Cuenta bancaria input helper
-const cuentaInput = ref('');
-const selectedCuentaInfo = ref('');
+// Helper states limpios
+// Variables limpias
+// (cedulaInput y selectedClientName se mantienen arriba)
 
-// Computed para filtrar cuentas bancarias
-const filteredCuentas = computed(() => {
-    if (!cuentaInput.value) return cuentas.value.slice(0, 10);
-
-    const busqueda = cuentaInput.value.toLowerCase();
-    return cuentas.value.filter(c =>
-        c.codigo.toLowerCase().includes(busqueda) ||
-        (c.entidad_bancaria?.nombre || '').toLowerCase().includes(busqueda)
-    ).slice(0, 10);
-});
-
-// Seleccionar cuenta por código o nombre de banco
-const seleccionarCuenta = () => {
-    const v = (cuentaInput.value || '').toString().trim();
-    if (!v) {
-        form.value.codigo_cuenta = '';
-        selectedCuentaInfo.value = '';
-        return;
-    }
-
-    // Buscar por código exacto
-    const found = cuentas.value.find(c => c.codigo === v);
-    if (found) {
-        form.value.codigo_cuenta = found.codigo;
-        selectedCuentaInfo.value = found.entidad_bancaria?.nombre || '';
-        return;
-    }
-
-    // Buscar por nombre de banco
-    const byBank = cuentas.value.find(c =>
-        (c.entidad_bancaria?.nombre || '').toLowerCase().includes(v.toLowerCase())
-    );
-    if (byBank) {
-        form.value.codigo_cuenta = byBank.codigo;
-        cuentaInput.value = byBank.codigo;
-        selectedCuentaInfo.value = byBank.entidad_bancaria?.nombre || '';
-        return;
-    }
-
-    selectedCuentaInfo.value = '';
+// Handler para CuentaAutocomplete
+const onCuentaSelect = (cuenta: Cuenta | null) => {
+    // V-model ya actualiza el código
+    // Aquí podemos añadir lógica adicional si se requiere en el futuro
 };
 
 // Computed para filtrar la lista de clientes sugeridos
@@ -383,9 +348,8 @@ onMounted(async () => {
             selectedClientName.value = data.nombre_cliente ?? '';
 
             // Rellenamos el input visual de cuenta bancaria
-            cuentaInput.value = data.codigo_cuenta;
-            const cuentaEncontrada = cuentas.value.find(c => c.codigo === data.codigo_cuenta);
-            selectedCuentaInfo.value = cuentaEncontrada?.entidad_bancaria?.nombre ?? '';
+            // La cuenta bancaria se vincula automáticamente vía v-model form.codigo_cuenta
+            // No necesitamos setear cuentaInput manualmente porque el componente lee de form.codigo_cuenta
 
             // Cargamos facturas manualmente porque el watch fue bloqueado
             // Pasamos el numero_pago para excluir este pago del cálculo de saldo
@@ -590,25 +554,9 @@ const guardar = async () => {
                                 </div>
 
                                 <div class="col-12 col-md-4">
-                                    <label class="form-label fw-bold" for="cuentaBancaria">
-                                        <i class="bi bi-bank me-1" aria-hidden="true"></i>Cuenta Bancaria
-                                    </label>
-                                    <input v-model="cuentaInput" @keyup.enter="seleccionarCuenta"
-                                        @blur="seleccionarCuenta" list="cuentasList" type="text" class="form-control"
-                                        id="cuentaBancaria" placeholder="Buscar cuenta o banco..." required
-                                        aria-label="Buscar cuenta bancaria por código o nombre del banco"
-                                        title="Escriba el código de cuenta o nombre del banco para buscar" />
-
-                                    <datalist id="cuentasList">
-                                        <option v-for="cta in filteredCuentas" :key="cta.codigo" :value="cta.codigo">
-                                            {{ cta.entidad_bancaria?.nombre }}
-                                        </option>
-                                    </datalist>
-
-                                    <div v-if="selectedCuentaInfo" class="form-text text-muted mt-1">
-                                        <i class="bi bi-check-circle text-success me-1" aria-hidden="true"></i>
-                                        Banco: <strong>{{ selectedCuentaInfo }}</strong>
-                                    </div>
+                                    <CuentaAutocomplete v-model="form.codigo_cuenta" :cuentas="cuentas"
+                                        label="Cuenta Bancaria" :required="true" placeholder="Buscar cuenta o banco..."
+                                        @select="onCuentaSelect" />
                                 </div>
 
                                 <div class="col-12">

@@ -61,12 +61,10 @@ const filterClientes = (option: Cliente, label: string, search: string) => {
                 </div>
             </template>
 
-            <!-- Slot para el valor seleccionado -->
+            <!-- Slot para el valor seleccionado (Diseño simple tipo input) -->
             <template #selected-option="{ cedula, nombre }">
-                <div class="cliente-selected">
-                    <span class="cedula">{{ cedula }}</span>
-                    <span class="separator">-</span>
-                    <span class="nombre">{{ nombre }}</span>
+                <div class="cliente-selected-simple">
+                    {{ cedula }} - {{ nombre }}
                 </div>
             </template>
 
@@ -87,10 +85,10 @@ const filterClientes = (option: Cliente, label: string, search: string) => {
     width: 100%;
 }
 
-/* Opciones del dropdown */
+/* Opciones del dropdown (Mantener diseño rico para la lista) */
 .cliente-option {
-    padding: 8px 4px;
-    border-bottom: 1px solid #f0f0f0;
+    padding: 6px 8px;
+    border-bottom: 1px solid #f8f9fa;
 }
 
 .cliente-option:last-child {
@@ -100,49 +98,34 @@ const filterClientes = (option: Cliente, label: string, search: string) => {
 .cliente-cedula {
     font-weight: 600;
     color: #0d6efd;
-    font-size: 0.95rem;
-}
-
-.cliente-nombre {
-    color: #6c757d;
-    font-size: 0.85rem;
-    margin-top: 2px;
-}
-
-/* Valor seleccionado */
-.cliente-selected {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.cliente-selected .cedula {
-    font-weight: 600;
-    color: #1a1a2e;
-}
-
-.cliente-selected .separator {
-    color: #adb5bd;
-}
-
-.cliente-selected .nombre {
-    color: #495057;
     font-size: 0.9rem;
 }
 
-/* Sin resultados */
-.no-options {
-    padding: 12px;
-    text-align: center;
-    color: #6c757d;
+.cliente-nombre {
+    color: #495057;
+    font-size: 0.85rem;
 }
 
-/* Estilos globales de vue-select (deep) */
+/* Valor seleccionado (Minimalista) */
+.cliente-selected-simple {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #212529;
+    /* Color texto estándar */
+    font-size: 1rem;
+}
+
+/* Estilos globales de vue-select para igualar form-control de Bootstrap */
 :deep(.vs__dropdown-toggle) {
-    border: 1px solid #ced4da;
+    border: 1px solid #dee2e6;
+    /* Borde bootstrap */
     border-radius: 0.375rem;
-    padding: 6px 10px;
+    padding: 0.375rem 0.75rem;
+    /* Padding bootstrap form-control */
     min-height: 38px;
+    background-color: #fff;
+    transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
 }
 
 :deep(.vs__dropdown-toggle:focus-within) {
@@ -150,45 +133,33 @@ const filterClientes = (option: Cliente, label: string, search: string) => {
     box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
 }
 
+:deep(.vs__selected-options) {
+    padding: 0;
+    margin: 0;
+}
+
 :deep(.vs__search) {
     margin: 0;
     padding: 0;
+    color: #212529;
 }
 
 :deep(.vs__search::placeholder) {
     color: #6c757d;
 }
 
-:deep(.vs__dropdown-menu) {
-    border: 1px solid #dee2e6;
-    border-radius: 0.375rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    max-height: 300px;
-    padding: 0;
+:deep(.vs__actions) {
+    padding-top: 0;
 }
 
-:deep(.vs__dropdown-option) {
-    padding: 0;
-}
-
-:deep(.vs__dropdown-option--highlight) {
-    background: rgba(13, 110, 253, 0.08);
-}
-
+/* Ajuste del botón X */
 :deep(.vs__clear) {
-    fill: #6c757d;
+    fill: #dc3545;
+    /* Rojo suave para borrar */
+    margin-right: 4px;
 }
 
 :deep(.vs__open-indicator) {
     fill: #6c757d;
-}
-
-:deep(.vs--disabled .vs__dropdown-toggle) {
-    background-color: #e9ecef;
-    cursor: not-allowed;
-}
-
-:deep(.vs--disabled .vs__search) {
-    background-color: transparent;
 }
 </style>
