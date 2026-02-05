@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 // @ts-ignore
 import vSelect from 'vue-select';
 import 'vue-select/dist/vue-select.css';
@@ -35,13 +35,38 @@ const onSelect = (cliente: Cliente | null) => {
     emit('select', cliente);
 };
 
-// Función de filtro personalizada
+// Estado de búsqueda
+const searchQuery = ref('');
+
+// Handler cuando el usuario escribe
+const onSearch = (query: string) => {
+    searchQuery.value = query;
+};
+
+// Handler al perder foco: intentar seleccionar por cédula exacta si no hay selección
+const onSearchBlur = () => {
+    if (!props.modelValue && searchQuery.value) {
+        const val = searchQuery.value.trim();
+        // Buscar coincidencia exacta por cédula
+        const exactMatch = props.clientes.find(c => c.cedula === val);
+        if (exactMatch) {
+            onSelect(exactMatch);
+        }
+    }
+};
+
+// Función de filtro personalizada robusta
 const filterClientes = (option: Cliente, label: string, search: string) => {
     const searchLower = search.toLowerCase();
     return (
         option.cedula.toLowerCase().includes(searchLower) ||
         (option.nombre || '').toLowerCase().includes(searchLower)
     );
+};
+
+// Función para obtener etiqueta (mejora accesibilidad y filtrado)
+const getOptionLabel = (option: Cliente) => {
+    return `${option.cedula} - ${option.nombre}`;
 };
 </script>
 
@@ -51,8 +76,9 @@ const filterClientes = (option: Cliente, label: string, search: string) => {
             <i class="bi bi-person-fill me-1" aria-hidden="true"></i>{{ label }}
         </label>
         <vSelect :modelValue="selectedCliente" @update:modelValue="onSelect" :options="clientes" :filterable="true"
-            :filter="filterClientes" :placeholder="placeholder || 'Escriba cédula o nombre...'" :disabled="disabled"
-            :clearable="true" label="cedula" class="cliente-select">
+            :filter="filterClientes" @search="onSearch" @search:blur="onSearchBlur" :get-option-label="getOptionLabel"
+            :placeholder="placeholder || 'Escriba cédula o nombre...'" :disabled="disabled" :clearable="true"
+            class="cliente-select">
             <!-- Slot para cada opción en el dropdown -->
             <template #option="{ cedula, nombre }">
                 <div class="cliente-option">
@@ -64,7 +90,7 @@ const filterClientes = (option: Cliente, label: string, search: string) => {
             <!-- Slot para el valor seleccionado (Diseño simple tipo input) -->
             <template #selected-option="{ cedula, nombre }">
                 <div class="cliente-selected-simple">
-                    {{ cedula }} - {{ nombre }}
+                    {{ cedula }}
                 </div>
             </template>
 
@@ -77,6 +103,12 @@ const filterClientes = (option: Cliente, label: string, search: string) => {
                 </div>
             </template>
         </vSelect>
+
+        <!-- Información adicional del cliente seleccionado (estilo nativo) -->
+        <div v-if="selectedCliente" class="form-text mt-1 text-success">
+            <i class="bi bi-check-circle me-1"></i>
+            Cliente: <strong>{{ selectedCliente.nombre }}</strong>
+        </div>
     </div>
 </template>
 

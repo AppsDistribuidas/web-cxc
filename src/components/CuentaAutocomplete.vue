@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 // @ts-ignore
 import vSelect from 'vue-select';
 import 'vue-select/dist/vue-select.css';
@@ -31,7 +31,26 @@ const onSelect = (cuenta: Cuenta | null) => {
     emit('select', cuenta);
 };
 
-// Función de filtro personalizada (busca por código o nombre del banco)
+// Estado de búsqueda
+const searchQuery = ref('');
+
+// Handler cuando el usuario escribe
+const onSearch = (query: string) => {
+    searchQuery.value = query;
+};
+
+// Handler al perder foco: intentar seleccionar por código exacto
+const onSearchBlur = () => {
+    if (!props.modelValue && searchQuery.value) {
+        const val = searchQuery.value.trim();
+        const exactMatch = props.cuentas.find(c => c.codigo === val);
+        if (exactMatch) {
+            onSelect(exactMatch);
+        }
+    }
+};
+
+// Función de filtro personalizada
 const filterCuentas = (option: Cuenta, label: string, search: string) => {
     const searchLower = search.toLowerCase();
     const bancoNombre = option.entidad_bancaria?.nombre || '';
@@ -39,6 +58,12 @@ const filterCuentas = (option: Cuenta, label: string, search: string) => {
         option.codigo.toLowerCase().includes(searchLower) ||
         bancoNombre.toLowerCase().includes(searchLower)
     );
+};
+
+// Función para etiqueta (mejora accesibilidad y filtrado)
+const getOptionLabel = (option: Cuenta) => {
+    const banco = option.entidad_bancaria?.nombre || 'Banco desconocido';
+    return `${option.codigo} - ${banco}`;
 };
 </script>
 
@@ -48,8 +73,9 @@ const filterCuentas = (option: Cuenta, label: string, search: string) => {
             <i class="bi bi-bank2 me-1" aria-hidden="true"></i>{{ label }}
         </label>
         <vSelect :modelValue="selectedCuenta" @update:modelValue="onSelect" :options="cuentas" :filterable="true"
-            :filter="filterCuentas" :placeholder="placeholder || 'Buscar cuenta...'" :disabled="disabled"
-            :clearable="true" label="codigo" class="cuenta-select">
+            :filter="filterCuentas" @search="onSearch" @search:blur="onSearchBlur" :get-option-label="getOptionLabel"
+            :placeholder="placeholder || 'Buscar cuenta...'" :disabled="disabled" :clearable="true"
+            class="cuenta-select">
             <!-- Slot para cada opción en el dropdown -->
             <template #option="{ codigo, entidad_bancaria }">
                 <div class="cuenta-option">
