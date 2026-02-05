@@ -35,14 +35,6 @@ const pagosPorPagina = 5;
 
 // Clientes para autocompletar (reutilizado)
 const clientesDisponibles = ref<any[]>([]);
-const filteredClientesPagos = computed(() => {
-    if (!pagosFilter.value.cedula_cliente) return clientesDisponibles.value.slice(0, 10);
-    const busqueda = pagosFilter.value.cedula_cliente.toLowerCase();
-    return clientesDisponibles.value.filter(c =>
-        c.cedula.includes(busqueda) ||
-        (c.nombre || '').toLowerCase().includes(busqueda)
-    ).slice(0, 10);
-});
 
 // Paginación de pagos
 const pagosPaginados = computed(() => {
@@ -75,13 +67,6 @@ const validarCliente = (cedula: string): boolean => {
     }
     return true;
 };
-
-// Nombre del cliente seleccionado en Pagos
-const nombreClienteSeleccionadoPagos = computed(() => {
-    if (!pagosFilter.value.cedula_cliente) return '';
-    const cliente = clientesDisponibles.value.find(c => c.cedula === pagosFilter.value.cedula_cliente);
-    return cliente ? cliente.nombre : '';
-});
 
 // Handler para ClienteAutocomplete en Pagos
 const onClienteSelectPagos = (cliente: { cedula: string; nombre: string } | null) => {
@@ -143,33 +128,9 @@ const estadoCuentaFilter = ref({
 });
 const estadoCuentaData = ref<any>(null); // Objeto con estructura { cliente, resumen, facturas }
 const estadoCuentaLoading = ref(false);
-const estadoCuentaAutocompletar = ref(''); // Input separado para búsqueda
 const estadoCuentaPaginaActual = ref(1);
 const estadoCuentaPorPagina = 25;
 const estadoCuentaTabActiva = ref<'movimientos' | 'pendientes'>('movimientos'); // Tab activa
-
-const filteredClientesEstado = computed(() => {
-    if (!estadoCuentaAutocompletar.value) return clientesDisponibles.value.slice(0, 10);
-    const busqueda = estadoCuentaAutocompletar.value.toLowerCase();
-    return clientesDisponibles.value.filter(c =>
-        c.cedula.includes(busqueda) ||
-        (c.nombre || '').toLowerCase().includes(busqueda)
-    ).slice(0, 10);
-});
-
-// Nombre del cliente seleccionado para mostrar
-const nombreClienteSeleccionado = computed(() => {
-    if (!estadoCuentaFilter.value.cedula_cliente) return '';
-    const cliente = clientesDisponibles.value.find(c => c.cedula === estadoCuentaFilter.value.cedula_cliente);
-    return cliente ? cliente.nombre : '';
-});
-
-// Watch para limpiar nombre cuando se borra la cédula
-watch(estadoCuentaAutocompletar, (newVal) => {
-    if (!newVal || newVal.trim() === '') {
-        estadoCuentaFilter.value.cedula_cliente = '';
-    }
-});
 
 // Paginación de movimientos en estado de cuenta
 const movimientosPaginados = computed(() => {
@@ -244,21 +205,6 @@ const formatFactura = (num: string) => {
         return `${clean.substring(0, 3)}-${clean.substring(3, 6)}-${clean.substring(6)}`;
     }
     return num;
-};
-
-// Selección de cliente en Estado de Cuenta
-const seleccionarClienteEstado = () => {
-    // Buscar en la lista si existe coincidencia exacta
-    const found = clientesDisponibles.value.find(c => c.cedula === estadoCuentaAutocompletar.value);
-    if (found) {
-        estadoCuentaFilter.value.cedula_cliente = found.cedula;
-    } else {
-        // Intento por nombre parcial si es único? Mejor forzar selección exacta o por cedula
-        // Si el input es una cédula válida, lo usamos
-        if (/^\d+$/.test(estadoCuentaAutocompletar.value)) {
-            estadoCuentaFilter.value.cedula_cliente = estadoCuentaAutocompletar.value;
-        }
-    }
 };
 
 onMounted(async () => {
@@ -644,7 +590,7 @@ const validarReporteGeneradoEstado = (): boolean => {
                                         <td class="text-end text-muted">${{ Number(d.total_factura || 0).toFixed(2) }}
                                         </td>
                                         <td class="text-end fw-bold text-success">${{ Number(d.monto_pagado).toFixed(2)
-                                        }}</td>
+                                            }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -793,7 +739,7 @@ const validarReporteGeneradoEstado = (): boolean => {
                     <div class="bg-light border rounded p-3 mb-4 text-center">
                         <div class="text-muted small">SALDO INICIAL</div>
                         <div class="fs-3 fw-bold text-secondary">${{ Number(estadoCuentaData.saldo_inicial).toFixed(2)
-                            }}</div>
+                        }}</div>
                         <div class="text-muted small">(Deuda acumulada antes del {{ estadoCuentaData.periodo?.desde }})
                         </div>
                     </div>
@@ -806,7 +752,7 @@ const validarReporteGeneradoEstado = (): boolean => {
                                 <i class="bi bi-list-ul me-1"></i>Movimientos
                                 <span class="badge bg-secondary ms-1">{{
                                     estadoCuentaData.movimientos?.length || 0
-                                }}</span>
+                                    }}</span>
                             </button>
                         </li>
                         <li class="nav-item">
