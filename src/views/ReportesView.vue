@@ -529,12 +529,6 @@ const validarReporteGeneradoEstado = (): boolean => {
                             <ClienteAutocomplete v-model="pagosFilter.cedula_cliente" :clientes="clientesDisponibles"
                                 label="Buscar Cliente (Opcional)" placeholder="Escriba cédula o nombre..."
                                 @select="onClienteSelectPagos" />
-                            <div class="form-text"
-                                :class="nombreClienteSeleccionadoPagos ? 'text-primary' : 'text-muted'">
-                                <i class="bi bi-person-check me-1" v-if="nombreClienteSeleccionadoPagos"
-                                    aria-hidden="true"></i>
-                                {{ nombreClienteSeleccionadoPagos || 'Todos los clientes' }}
-                            </div>
                         </div>
                         <div class="col-6 col-md-2">
                             <label class="form-label fw-bold" for="pagosFechaInicio">
@@ -708,11 +702,6 @@ const validarReporteGeneradoEstado = (): boolean => {
                             <ClienteAutocomplete v-model="estadoCuentaFilter.cedula_cliente"
                                 :clientes="clientesDisponibles" label="Cliente" :required="true"
                                 placeholder="Escriba cédula o nombre..." @select="onClienteSelectEstado" />
-                            <div class="form-text" :class="nombreClienteSeleccionado ? 'text-primary' : 'text-danger'">
-                                <i :class="nombreClienteSeleccionado ? 'bi bi-person-check' : 'bi bi-exclamation-circle'"
-                                    class="me-1" aria-hidden="true"></i>
-                                {{ nombreClienteSeleccionado || 'Seleccione un cliente' }}
-                            </div>
                         </div>
                         <div class="col-6 col-md-2">
                             <label class="form-label fw-bold" for="estadoFechaInicio">
