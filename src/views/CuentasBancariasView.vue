@@ -13,7 +13,8 @@ const { showSuccess, showError, showWarning, showConfirm } = useSweetAlert();
 
 const cuentas = ref<Cuenta[]>([]);
 const error = ref<string | null>(null);
-const loading = ref(false);
+const loading = ref(true);
+const dataLoaded = ref(false);
 
 // Pagination state
 const currentPage = ref(1);
@@ -116,6 +117,8 @@ const obtenerCuentas = async (page: number = 1) => {
         perPage.value = pagination.per_page;
         from.value = pagination.from || 0;
         to.value = pagination.to || 0;
+        // Mark data as loaded after first successful fetch
+        dataLoaded.value = true;
     } catch (e: any) {
         if (e.response && e.response.status === 403) {
             error.value = "No tienes permiso para ver las cuentas.";
@@ -279,7 +282,7 @@ onMounted(async () => {
         </div>
 
         <!-- Table -->
-        <div v-else class="card shadow-sm border-0 overflow-hidden">
+        <div v-else-if="dataLoaded" class="card shadow-sm border-0 overflow-hidden">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light text-secondary">

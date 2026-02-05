@@ -45,30 +45,39 @@ const filterMonto = ref('');   // monto exacto
 // Selección múltiple para impresión masiva
 const selectedPagos = ref<Set<string>>(new Set());
 
-// Computed: verificar si todos están seleccionados
+// Computed: verificar si todos los pagos activos están seleccionados
 const allSelected = computed(() => {
-    if (pagos.value.length === 0) return false;
-    return pagos.value.every(p => selectedPagos.value.has(p.numero_pago));
+    const activePagos = pagos.value.filter(p => p.estado);
+    if (activePagos.length === 0) return false;
+    return activePagos.every(p => selectedPagos.value.has(p.numero_pago));
 });
 
 // Computed: cantidad de seleccionados
 const selectedCount = computed(() => selectedPagos.value.size);
 
-// Toggle seleccionar todos
+// Toggle seleccionar todos (solo pagos activos)
 const toggleSelectAll = () => {
     if (allSelected.value) {
         selectedPagos.value.clear();
     } else {
-        pagos.value.forEach(p => selectedPagos.value.add(p.numero_pago));
+        // Solo seleccionar pagos activos
+        pagos.value.forEach(p => {
+            if (p.estado) {
+                selectedPagos.value.add(p.numero_pago);
+            }
+        });
     }
 };
 
-// Toggle selección individual
-const toggleSelect = (numeroPago: string) => {
-    if (selectedPagos.value.has(numeroPago)) {
-        selectedPagos.value.delete(numeroPago);
+// Toggle selección individual (solo si el pago está activo)
+const toggleSelect = (pago: any) => {
+    // Prevenir selección de pagos inactivos
+    if (!pago.estado) return;
+
+    if (selectedPagos.value.has(pago.numero_pago)) {
+        selectedPagos.value.delete(pago.numero_pago);
     } else {
-        selectedPagos.value.add(numeroPago);
+        selectedPagos.value.add(pago.numero_pago);
     }
 };
 
@@ -434,11 +443,11 @@ onMounted(() => {
                             <th class="text-center ps-3">Acciones</th>
                             <th @click="toggleSort('numero_pago')" class="ps-4 fw-bold" style="cursor:pointer">
                                 No. Pago <small v-if="sortBy === 'numero_pago'">{{ sortOrder === 'asc' ? '▲' : '▼'
-                                }}</small>
+                                    }}</small>
                             </th>
                             <th @click="toggleSort('cedula_cliente')" class="fw-bold" style="cursor:pointer">
                                 Cliente <small v-if="sortBy === 'cedula_cliente'">{{ sortOrder === 'asc' ? '▲' : '▼'
-                                }}</small>
+                                    }}</small>
                             </th>
                             <th class="text-center fw-bold">Cuenta</th>
                             <th @click="toggleSort('fecha')" class="fw-bold" style="cursor:pointer">
@@ -493,9 +502,11 @@ onMounted(() => {
                         <tr v-for="pago in pagos" :key="pago.numero_pago"
                             :class="{ 'table-primary': selectedPagos.has(pago.numero_pago) }">
                             <td class="text-center">
-                                <input type="checkbox" class="form-check-input"
-                                    :checked="selectedPagos.has(pago.numero_pago)"
-                                    @change="toggleSelect(pago.numero_pago)">
+                                <input v-if="pago.estado" type="checkbox" class="form-check-input"
+                                    :checked="selectedPagos.has(pago.numero_pago)" @change="toggleSelect(pago)"
+                                    :title="pago.estado ? 'Seleccionar para impresión masiva' : ''"
+                                    :aria-label="`Seleccionar pago ${pago.numero_pago} para impresión masiva`">
+                                <span v-else class="text-muted small"></span>
                             </td>
                             <td class="text-center ps-3">
                                 <div class="btn-group">
@@ -512,7 +523,7 @@ onMounted(() => {
                                         class="btn btn-sm btn-outline-secondary"
                                         :title="pago.fecha_impresion ? `Reimprimir comprobante del pago ${pago.numero_pago}` : `Procesar y descargar comprobante del pago ${pago.numero_pago}`"
                                         :aria-label="pago.fecha_impresion ? `Reimprimir comprobante` : `Descargar comprobante`">
-                                        <i :class="pago.fecha_impresion ? 'bi bi-printer' : 'bi bi-download'"
+                                        <i :class="pago.fecha_impresion ? 'bi bi-download' : 'bi bi-printer'"
                                             aria-hidden="true"></i>
                                     </button>
 
@@ -542,8 +553,8 @@ onMounted(() => {
                             </td>
                             <td class="text-center">
                                 <span
-                                    :class="`badge rounded-pill ${pago.fecha_impresion ? 'bg-success' : (pago.estado ? 'bg-warning text-dark' : 'bg-danger')}`">
-                                    {{ pago.fecha_impresion ? 'Procesado' : (pago.estado ? 'Activo' : 'Inactivo') }}
+                                    :class="`badge rounded-pill ${!pago.estado ? 'bg-danger' : (pago.fecha_impresion ? 'bg-success' : 'bg-warning text-dark')}`">
+                                    {{ !pago.estado ? 'Inactivo' : (pago.fecha_impresion ? 'Procesado' : 'Activo') }}
                                 </span>
                             </td>
                         </tr>
