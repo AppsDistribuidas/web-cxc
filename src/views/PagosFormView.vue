@@ -5,6 +5,7 @@ import api from '@/api/axios';
 import { useSweetAlert } from '@/composables/useSweetAlert';
 import type { Cuenta } from '@/types/BankingTypes';
 import type { PagoPayload, DetallePago } from '@/types/PaymentTypes';
+import ClienteAutocomplete from '@/components/ClienteAutocomplete.vue';
 
 const { showSuccess, showError, showWarning } = useSweetAlert();
 
@@ -125,6 +126,17 @@ const seleccionarClientePorCedula = async () => {
     // No encontrado: mantener valor y limpiar facturas
     selectedClientName.value = '';
     facturasDisponibles.value = [];
+};
+
+// Handler para ClienteAutocomplete
+const onClienteSelect = async (cliente: { cedula: string; nombre: string } | null) => {
+    if (cliente) {
+        selectedClientName.value = cliente.nombre;
+        await cargarFacturasCliente();
+    } else {
+        selectedClientName.value = '';
+        facturasDisponibles.value = [];
+    }
 };
 
 // BANDERA PARA CONTROLAR LA EDICIÓN
@@ -563,36 +575,18 @@ const guardar = async () => {
                         <form v-else @submit.prevent="guardar">
                             <div class="row g-3 mb-4">
                                 <div class="col-12 col-md-4">
-                                    <label class="form-label fw-bold" for="clienteInput">
-                                        <i class="bi bi-person-fill me-1" aria-hidden="true"></i>Cliente
-                                    </label>
-                                    <!-- Input libre para poder escribir la cédula y autoseleccionar -->
-                                    <input v-model="cedulaInput" @keyup.enter="seleccionarClientePorCedula"
-                                        @blur="seleccionarClientePorCedula" list="clientesList" type="text"
-                                        class="form-control" id="clienteInput"
-                                        :placeholder="isEditing ? '' : 'Ingrese cédula o seleccione...'"
-                                        :disabled="isEditing" required aria-label="Buscar cliente por cédula o nombre"
-                                        title="Escriba la cédula del cliente o parte de su nombre. Se autocompletará con sugerencias" />
-
-                                    <datalist id="clientesList">
-                                        <option v-for="cli in filteredClientes" :key="cli.cedula" :value="cli.cedula">
-                                            {{ cli.nombre }}
-                                        </option>
-                                    </datalist>
-
-                                    <div v-if="selectedClientName" class="form-text text-muted mt-1">
-                                        <i class="bi bi-check-circle text-success me-1" aria-hidden="true"></i>
-                                        Nombre cliente: <strong>{{ selectedClientName }}</strong>
-                                    </div>
+                                    <ClienteAutocomplete v-model="form.cedula_cliente" :clientes="clientesDisponibles"
+                                        label="Cliente" :disabled="isEditing" :required="true"
+                                        placeholder="Escriba cédula o nombre..." @select="onClienteSelect" />
                                 </div>
 
                                 <div class="col-12 col-md-4">
                                     <label class="form-label fw-bold" for="fechaPago">
                                         <i class="bi bi-calendar-event me-1" aria-hidden="true"></i>Fecha Pago
                                     </label>
-                                    <input v-model="form.fecha" type="date" class="form-control" id="fechaPago" required
-                                        aria-label="Fecha del pago"
-                                        title="Seleccione la fecha en que se realizó el pago">
+                                    <input v-model="fechaActual" type="text" class="form-control" id="fechaPago"
+                                        disabled aria-label="Fecha del pago"
+                                        title="La fecha de pagos es generada automáticamente">
                                 </div>
 
                                 <div class="col-12 col-md-4">

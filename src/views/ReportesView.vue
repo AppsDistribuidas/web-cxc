@@ -3,6 +3,7 @@ import { ref, onMounted, computed, watch } from 'vue';
 import api from '@/api/axios';
 import { useAuth } from '@/composables/useAuth';
 import { useSweetAlert } from '@/composables/useSweetAlert';
+import ClienteAutocomplete from '@/components/ClienteAutocomplete.vue';
 
 const { can } = useAuth();
 const { showSuccess, showError, showWarning } = useSweetAlert();
@@ -73,6 +74,25 @@ const validarCliente = (cedula: string): boolean => {
         return false;
     }
     return true;
+};
+
+// Nombre del cliente seleccionado en Pagos
+const nombreClienteSeleccionadoPagos = computed(() => {
+    if (!pagosFilter.value.cedula_cliente) return '';
+    const cliente = clientesDisponibles.value.find(c => c.cedula === pagosFilter.value.cedula_cliente);
+    return cliente ? cliente.nombre : '';
+});
+
+// Handler para ClienteAutocomplete en Pagos
+const onClienteSelectPagos = (cliente: { cedula: string; nombre: string } | null) => {
+    // El v-model ya actualiza pagosFilter.cedula_cliente
+    // Aquí podemos hacer acciones adicionales si es necesario
+};
+
+// Handler para ClienteAutocomplete en Estado de Cuenta
+const onClienteSelectEstado = (cliente: { cedula: string; nombre: string } | null) => {
+    // El v-model ya actualiza estadoCuentaFilter.cedula_cliente
+    // Aquí podemos hacer acciones adicionales si es necesario
 };
 
 const generarReportePagos = async (type: 'json' | 'pdf') => {
@@ -400,44 +420,7 @@ const descargarDocumento = async (doc: DocumentoHistorial) => {
     }
 };
 
-// --- MEJORAS UX: Autocompletar uniforme para Pagos ---
-const pagosAutocompletar = ref('');
-
-// Nombre del cliente seleccionado para mostrar en Pagos
-const nombreClienteSeleccionadoPagos = computed(() => {
-    if (!pagosFilter.value.cedula_cliente) return '';
-    const cliente = clientesDisponibles.value.find(c => c.cedula === pagosFilter.value.cedula_cliente);
-    return cliente ? cliente.nombre : '';
-});
-
-// Watch para limpiar nombre cuando se borra la cédula en Pagos
-watch(pagosAutocompletar, (newVal) => {
-    if (!newVal || newVal.trim() === '') {
-        pagosFilter.value.cedula_cliente = '';
-    }
-});
-
-// Selección de cliente en Pagos
-const seleccionarClientePagos = () => {
-    const found = clientesDisponibles.value.find(c => c.cedula === pagosAutocompletar.value);
-    if (found) {
-        pagosFilter.value.cedula_cliente = found.cedula;
-    } else if (/^\d+$/.test(pagosAutocompletar.value)) {
-        pagosFilter.value.cedula_cliente = pagosAutocompletar.value;
-    }
-};
-
-// Computed para filtrar clientes en Pagos (uniforme)
-const filteredClientesPagosUniforme = computed(() => {
-    if (!pagosAutocompletar.value) return clientesDisponibles.value.slice(0, 10);
-    const busqueda = pagosAutocompletar.value.toLowerCase();
-    return clientesDisponibles.value.filter(c =>
-        c.cedula.includes(busqueda) ||
-        (c.nombre || '').toLowerCase().includes(busqueda)
-    ).slice(0, 10);
-});
-
-// Validación para PDF sin reporte generado
+// --- Validaciones para PDF ---
 const validarReporteGeneradoPagos = (): boolean => {
     if (pagosResultados.value.length === 0) {
         showWarning('Primero debe generar un reporte antes de descargar el PDF.', 'Reporte requerido');
@@ -543,19 +526,9 @@ const validarReporteGeneradoEstado = (): boolean => {
                     <div class="row g-3 align-items-end">
                         <!-- Campos de filtro primero -->
                         <div class="col-12 col-md-4">
-                            <label class="form-label fw-bold" for="pagosCliente">
-                                <i class="bi bi-person me-1" aria-hidden="true"></i>
-                                Buscar Cliente (Opcional)
-                            </label>
-                            <input v-model="pagosAutocompletar" list="dlPagosUniforme" class="form-control"
-                                id="pagosCliente" placeholder="Escriba cédula o nombre..."
-                                @change="seleccionarClientePagos" @blur="seleccionarClientePagos"
-                                aria-label="Buscar cliente por nombre o cédula"
-                                title="Deje vacío para incluir todos los clientes, o busque uno específico">
-                            <datalist id="dlPagosUniforme">
-                                <option v-for="c in filteredClientesPagosUniforme" :key="c.cedula" :value="c.cedula">{{
-                                    c.nombre }}</option>
-                            </datalist>
+                            <ClienteAutocomplete v-model="pagosFilter.cedula_cliente" :clientes="clientesDisponibles"
+                                label="Buscar Cliente (Opcional)" placeholder="Escriba cédula o nombre..."
+                                @select="onClienteSelectPagos" />
                             <div class="form-text"
                                 :class="nombreClienteSeleccionadoPagos ? 'text-primary' : 'text-muted'">
                                 <i class="bi bi-person-check me-1" v-if="nombreClienteSeleccionadoPagos"
@@ -677,7 +650,7 @@ const validarReporteGeneradoEstado = (): boolean => {
                                         <td class="text-end text-muted">${{ Number(d.total_factura || 0).toFixed(2) }}
                                         </td>
                                         <td class="text-end fw-bold text-success">${{ Number(d.monto_pagado).toFixed(2)
-                                            }}</td>
+                                        }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -732,20 +705,9 @@ const validarReporteGeneradoEstado = (): boolean => {
                     <div class="row g-3 align-items-end">
                         <!-- Campo de cliente primero (requerido) -->
                         <div class="col-12 col-md-4">
-                            <label class="form-label fw-bold" for="estadoCliente">
-                                <i class="bi bi-person-fill me-1" aria-hidden="true"></i>
-                                Cliente <span class="text-danger">*</span>
-                            </label>
-                            <input v-model="estadoCuentaAutocompletar" list="dlEstado" class="form-control"
-                                id="estadoCliente" placeholder="Escriba cédula o nombre..."
-                                @change="seleccionarClienteEstado" @blur="seleccionarClienteEstado"
-                                aria-label="Buscar cliente por nombre o cédula (requerido)"
-                                title="Seleccione el cliente para generar su estado de cuenta"
-                                :aria-invalid="!estadoCuentaFilter.cedula_cliente">
-                            <datalist id="dlEstado">
-                                <option v-for="c in filteredClientesEstado" :key="c.cedula" :value="c.cedula">{{
-                                    c.nombre }}</option>
-                            </datalist>
+                            <ClienteAutocomplete v-model="estadoCuentaFilter.cedula_cliente"
+                                :clientes="clientesDisponibles" label="Cliente" :required="true"
+                                placeholder="Escriba cédula o nombre..." @select="onClienteSelectEstado" />
                             <div class="form-text" :class="nombreClienteSeleccionado ? 'text-primary' : 'text-danger'">
                                 <i :class="nombreClienteSeleccionado ? 'bi bi-person-check' : 'bi bi-exclamation-circle'"
                                     class="me-1" aria-hidden="true"></i>
@@ -842,7 +804,7 @@ const validarReporteGeneradoEstado = (): boolean => {
                     <div class="bg-light border rounded p-3 mb-4 text-center">
                         <div class="text-muted small">SALDO INICIAL</div>
                         <div class="fs-3 fw-bold text-secondary">${{ Number(estadoCuentaData.saldo_inicial).toFixed(2)
-                        }}</div>
+                            }}</div>
                         <div class="text-muted small">(Deuda acumulada antes del {{ estadoCuentaData.periodo?.desde }})
                         </div>
                     </div>
@@ -855,7 +817,7 @@ const validarReporteGeneradoEstado = (): boolean => {
                                 <i class="bi bi-list-ul me-1"></i>Movimientos
                                 <span class="badge bg-secondary ms-1">{{
                                     estadoCuentaData.movimientos?.length || 0
-                                    }}</span>
+                                }}</span>
                             </button>
                         </li>
                         <li class="nav-item">
