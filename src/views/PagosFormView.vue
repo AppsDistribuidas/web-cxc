@@ -352,6 +352,7 @@ onMounted(async () => {
                 cedula_cliente: data.cedula_cliente,
                 codigo_cuenta: data.codigo_cuenta,
                 descripcion: data.descripcion,
+                fecha: fechaLimpia,
                 detalles: (data.detalles || []).map((d: any) => {
                     const montoFromBackend = d.monto_pagado ?? d.monto_pagar ?? d.monto ?? 0;
                     return {
