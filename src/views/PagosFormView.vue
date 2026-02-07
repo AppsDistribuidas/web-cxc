@@ -8,7 +8,7 @@ import type { PagoPayload, DetallePago } from '@/types/PaymentTypes';
 import ClienteAutocomplete from '@/components/ClienteAutocomplete.vue';
 import CuentaAutocomplete from '@/components/CuentaAutocomplete.vue';
 
-const { showSuccess, showError, showWarning } = useSweetAlert();
+const { showSuccess, showError, showWarning, showConfirm } = useSweetAlert();
 
 const router = useRouter();
 const route = useRoute();
@@ -166,6 +166,13 @@ const montoExcedeSaldo = (factura: any) => {
     const key = unformatNumeroFactura(factura.numero_factura);
     const item = facturasConSeleccion.value.get(key);
     return (item?.monto ?? 0) > Number(factura.saldo_pendiente);
+};
+
+// Verificar si el monto es cero o negativo
+const montoEsCeroONegativo = (factura: any) => {
+    const key = unformatNumeroFactura(factura.numero_factura);
+    const item = facturasConSeleccion.value.get(key);
+    return item?.selected && (item?.monto ?? 0) <= 0;
 };
 
 // Cantidad de facturas seleccionadas
@@ -379,12 +386,16 @@ const guardar = async () => {
     // Construir detalles desde facturas seleccionadas
     const detallesSeleccionados: { numero_factura: string; monto_pagar: number }[] = [];
     let hayMontoExcedido = false;
+    let hayMontoCero = false;
 
     facturasConSeleccion.value.forEach((item, key) => {
         if (item.selected) {
             const factura = facturasDisponibles.value.find(f => unformatNumeroFactura(f.numero_factura) === key);
             if (factura && item.monto > Number(factura.saldo_pendiente)) {
                 hayMontoExcedido = true;
+            }
+            if (item.monto <= 0) {
+                hayMontoCero = true;
             }
             if (item.monto > 0) {
                 detallesSeleccionados.push({
@@ -400,8 +411,23 @@ const guardar = async () => {
         return;
     }
 
+    if (hayMontoCero) {
+        await showWarning("Todas las facturas seleccionadas deben tener un monto mayor a $0.");
+        return;
+    }
+
     if (hayMontoExcedido) {
         await showWarning("Hay montos que exceden el saldo pendiente. Por favor corríjalos.");
+        return;
+    }
+
+    // Confirmación antes de guardar
+    const mensaje = isEditing.value
+        ? `¿Está seguro de actualizar este pago por un total de $${totalPago.value.toFixed(2)}?`
+        : `¿Está seguro de crear este pago por un total de $${totalPago.value.toFixed(2)}?`;
+
+    const confirmado = await showConfirm(mensaje, 'Confirmar pago');
+    if (!confirmado) {
         return;
     }
 
@@ -424,11 +450,13 @@ const guardar = async () => {
         router.push('/pagos');
     } catch (e: any) {
         if (e.response?.status === 422) {
-            error.value = e.response.data.message || JSON.stringify(e.response.data.errors);
+            const errors = e.response.data.errors;
+            const errorMessages = Object.values(errors).flat().join('\n');
+            await showError(errorMessages);
         } else if (e.response?.status === 404) {
-            error.value = e.response.data.message;
+            await showError(e.response.data.message);
         } else {
-            error.value = e.response?.data?.message || "Error al guardar el pago.";
+            await showError(e.response?.data?.message || "Error al guardar el pago.");
         }
     } finally {
         saving.value = false;
@@ -643,14 +671,16 @@ const guardar = async () => {
                                                         <div class="input-group input-group-sm">
                                                             <span class="input-group-text" aria-hidden="true">$</span>
                                                             <input type="number" class="form-control text-end"
-                                                                step="0.01" min="0"
+                                                                step="0.01" min="0.01"
                                                                 :max="Number(factura.saldo_pendiente)"
                                                                 :value="getMontoFactura(factura.numero_factura)"
                                                                 @input="actualizarMonto(factura.numero_factura, Number(($event.target as HTMLInputElement).value))"
-                                                                :class="{ 'is-invalid': montoExcedeSaldo(factura) }"
+                                                                :class="{
+                                                                    'is-invalid': montoExcedeSaldo(factura) || montoEsCeroONegativo(factura)
+                                                                }"
                                                                 :disabled="!isFacturaSeleccionada(factura.numero_factura)"
                                                                 :aria-label="`Monto a pagar para factura ${formatNumeroFactura(factura.numero_factura)}`"
-                                                                :title="`Máximo: $${Number(factura.saldo_pendiente).toFixed(2)}. Ingrese el monto que desea abonar a esta factura`">
+                                                                :title="`Mínimo: $0.01, Máximo: $${Number(factura.saldo_pendiente).toFixed(2)}. Ingrese el monto que desea abonar a esta factura`">
                                                             <button type="button" class="btn btn-outline-success btn-sm"
                                                                 title="Establecer monto igual al saldo pendiente completo"
                                                                 :aria-label="`Pagar saldo completo de $${Number(factura.saldo_pendiente).toFixed(2)}`"
