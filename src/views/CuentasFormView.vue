@@ -16,7 +16,8 @@ const form = ref<Partial<Cuenta>>({
 
 const bancos = ref<EntidadBancaria[]>([]);
 const tiposCuenta = ref<string[]>([]);
-const loading = ref(false);
+const loading = ref(true);
+const saving = ref(false);
 
 onMounted(async () => {
     try {
@@ -30,11 +31,13 @@ onMounted(async () => {
         tiposCuenta.value = responseTipos.data.data;
     } catch (e) {
         console.error(e);
+    } finally {
+        loading.value = false;
     }
 });
 
 const guardar = async () => {
-    loading.value = true;
+    saving.value = true;
 
     try {
         await api.post('/v1/cuentas-bancarias', form.value);
@@ -51,28 +54,51 @@ const guardar = async () => {
             await showError(e.response?.data?.message || "Error al guardar la cuenta.");
         }
     } finally {
-        loading.value = false;
+        saving.value = false;
     }
 };
 </script>
 
 <template>
-    <div class="container mt-4">
+    <div class="container mt-4 mb-5">
         <div class="row justify-content-center">
             <div class="col-md-8 col-lg-6">
 
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
-                        <h2 class="mb-0">Nueva Cuenta Bancaria</h2>
+                <div class="card shadow border-0">
+                    <div
+                        class="card-header gradient-header text-white py-3 d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0 fw-normal">
+                            Nueva Cuenta Bancaria
+                        </h4>
                     </div>
 
                     <div class="card-body p-4">
+                        <!-- Skeleton Loading -->
+                        <div v-if="loading" class="skeleton-form">
+                            <div class="mb-3">
+                                <div class="skeleton-box mb-2" style="width: 100px; height: 14px;"></div>
+                                <div class="skeleton-box" style="width: 100%; height: 38px;"></div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="skeleton-box mb-2" style="width: 60px; height: 14px;"></div>
+                                <div class="skeleton-box" style="width: 100%; height: 38px;"></div>
+                            </div>
+                            <div class="mb-4">
+                                <div class="skeleton-box mb-2" style="width: 90px; height: 14px;"></div>
+                                <div class="skeleton-box" style="width: 100%; height: 80px;"></div>
+                            </div>
+                            <div class="d-flex justify-content-end gap-2">
+                                <div class="skeleton-box" style="width: 100px; height: 38px;"></div>
+                                <div class="skeleton-box" style="width: 100px; height: 38px;"></div>
+                            </div>
+                        </div>
 
-
-                        <form @submit.prevent="guardar">
+                        <form v-else @submit.prevent="guardar">
 
                             <div class="mb-3">
-                                <label for="nombre" class="form-label fw-bold">Tipo de Cuenta</label>
+                                <label for="nombre" class="form-label fw-bold">
+                                    <i class="bi bi-credit-card me-1"></i>Tipo de Cuenta
+                                </label>
                                 <select id="nombre" v-model="form.nombre_cuenta" class="form-select" required>
                                     <option value="" disabled>Seleccione un tipo de cuenta...</option>
                                     <option v-for="tipo in tiposCuenta" :key="tipo" :value="tipo">
@@ -82,7 +108,9 @@ const guardar = async () => {
                             </div>
 
                             <div class="mb-3">
-                                <label for="banco" class="form-label fw-bold">Banco</label>
+                                <label for="banco" class="form-label fw-bold">
+                                    <i class="bi bi-building me-1"></i>Banco
+                                </label>
                                 <select id="banco" v-model="form.id_entidad_bancaria" class="form-select" required>
                                     <option :value="undefined" disabled>Seleccione un banco...</option>
                                     <option v-for="banco in bancos" :key="banco.id" :value="banco.id">
@@ -92,20 +120,23 @@ const guardar = async () => {
                             </div>
 
                             <div class="mb-4">
-                                <label for="descripcion" class="form-label fw-bold">Descripción</label>
+                                <label for="descripcion" class="form-label fw-bold">
+                                    <i class="bi bi-card-text me-1"></i>Descripción
+                                </label>
                                 <textarea id="descripcion" v-model="form.descripcion" class="form-control" rows="3"
                                     placeholder="Detalles opcionales..."></textarea>
                             </div>
 
                             <div class="d-flex justify-content-end gap-2">
-                                <button type="button" @click="router.push('/cuentas')" class="btn btn-secondary"
-                                    :disabled="loading">
-                                    Cancelar
+                                <button type="button" @click="router.push('/cuentas')" class="btn btn-outline-secondary"
+                                    :disabled="saving">
+                                    <i class="bi bi-x-lg me-1"></i>Cancelar
                                 </button>
                                 <button type="submit" class="btn btn-success d-flex align-items-center"
-                                    :disabled="loading">
-                                    <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
-                                    {{ loading ? 'Guardando...' : 'Guardar' }}
+                                    :disabled="saving">
+                                    <span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>
+                                    <i v-else class="bi bi-check-lg me-1"></i>
+                                    {{ saving ? 'Guardando...' : 'Guardar' }}
                                 </button>
                             </div>
                         </form>
@@ -116,4 +147,68 @@ const guardar = async () => {
     </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+/* Gradiente Azul Mejorado */
+.gradient-header {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+}
+
+/* Skeleton loading animation */
+.skeleton-box {
+    display: inline-block;
+    height: 16px;
+    background: linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Focus visible para accesibilidad */
+.form-control:focus,
+.form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Card principal */
+.card.shadow {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* Botón success mejorado */
+/* Tono oscuro sólido consistente con el tema */
+.gradient-header {
+    background: #1a1a2e;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #198754 0%, #146c43 100%);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-success:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(25, 135, 84, 0.35);
+}
+
+/* Botón outline mejorado */
+.btn-outline-secondary {
+    transition: all 0.2s ease;
+}
+
+.btn-outline-secondary:hover {
+    transform: translateY(-1px);
+}
+</style>

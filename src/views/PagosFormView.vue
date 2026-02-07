@@ -5,6 +5,8 @@ import api from '@/api/axios';
 import { useSweetAlert } from '@/composables/useSweetAlert';
 import type { Cuenta } from '@/types/BankingTypes';
 import type { PagoPayload, DetallePago } from '@/types/PaymentTypes';
+import ClienteAutocomplete from '@/components/ClienteAutocomplete.vue';
+import CuentaAutocomplete from '@/components/CuentaAutocomplete.vue';
 
 const { showSuccess, showError, showWarning } = useSweetAlert();
 
@@ -33,98 +35,19 @@ const error = ref<string | null>(null);
 const estadoPago = ref<boolean | null>(null);
 const fechaImpresion = ref<string | null>(null);
 
-// Cliente input helper
-const cedulaInput = ref('');
-const selectedClientName = ref('');
-
-// Cuenta bancaria input helper
-const cuentaInput = ref('');
-const selectedCuentaInfo = ref('');
-
-// Computed para filtrar cuentas bancarias
-const filteredCuentas = computed(() => {
-    if (!cuentaInput.value) return cuentas.value.slice(0, 10);
-
-    const busqueda = cuentaInput.value.toLowerCase();
-    return cuentas.value.filter(c =>
-        c.codigo.toLowerCase().includes(busqueda) ||
-        (c.entidad_bancaria?.nombre || '').toLowerCase().includes(busqueda)
-    ).slice(0, 10);
-});
-
-// Seleccionar cuenta por código o nombre de banco
-const seleccionarCuenta = () => {
-    const v = (cuentaInput.value || '').toString().trim();
-    if (!v) {
-        form.value.codigo_cuenta = '';
-        selectedCuentaInfo.value = '';
-        return;
-    }
-
-    // Buscar por código exacto
-    const found = cuentas.value.find(c => c.codigo === v);
-    if (found) {
-        form.value.codigo_cuenta = found.codigo;
-        selectedCuentaInfo.value = found.entidad_bancaria?.nombre || '';
-        return;
-    }
-
-    // Buscar por nombre de banco
-    const byBank = cuentas.value.find(c =>
-        (c.entidad_bancaria?.nombre || '').toLowerCase().includes(v.toLowerCase())
-    );
-    if (byBank) {
-        form.value.codigo_cuenta = byBank.codigo;
-        cuentaInput.value = byBank.codigo;
-        selectedCuentaInfo.value = byBank.entidad_bancaria?.nombre || '';
-        return;
-    }
-
-    selectedCuentaInfo.value = '';
+// Handler para CuentaAutocomplete
+const onCuentaSelect = (cuenta: Cuenta | null) => {
+    // V-model ya actualiza el código
+    // Aquí podemos añadir lógica adicional si se requiere en el futuro
 };
 
-// Computed para filtrar la lista de clientes sugeridos
-const filteredClientes = computed(() => {
-    if (!cedulaInput.value) return clientesDisponibles.value.slice(0, 10);
-
-    const busqueda = cedulaInput.value.toLowerCase();
-    return clientesDisponibles.value.filter(c =>
-        c.cedula.includes(busqueda) ||
-        (c.nombre || '').toLowerCase().includes(busqueda)
-    ).slice(0, 10); // Limitar a 10 resultados irrelevantes para no saturar el DOM
-});
-
-const seleccionarClientePorCedula = async () => {
-    const v = (cedulaInput.value || '').toString().trim();
-    if (!v) {
-        form.value.cedula_cliente = '';
-        selectedClientName.value = '';
+// Handler para ClienteAutocomplete
+const onClienteSelect = async (cliente: { cedula: string; nombre: string } | null) => {
+    if (cliente) {
+        await cargarFacturasCliente();
+    } else {
         facturasDisponibles.value = [];
-        return;
     }
-
-    // Buscar exact match por cédula
-    const found = clientesDisponibles.value.find(c => c.cedula === v);
-    if (found) {
-        form.value.cedula_cliente = found.cedula;
-        selectedClientName.value = found.nombre;
-        await cargarFacturasCliente();
-        return;
-    }
-
-    // Buscar por coincidencia parcial en nombre
-    const byName = clientesDisponibles.value.find(c => (c.nombre || '').toLowerCase().includes(v.toLowerCase()));
-    if (byName) {
-        form.value.cedula_cliente = byName.cedula;
-        cedulaInput.value = byName.cedula;
-        selectedClientName.value = byName.nombre;
-        await cargarFacturasCliente();
-        return;
-    }
-
-    // No encontrado: mantener valor y limpiar facturas
-    selectedClientName.value = '';
-    facturasDisponibles.value = [];
 };
 
 // BANDERA PARA CONTROLAR LA EDICIÓN
@@ -290,8 +213,8 @@ watch(() => form.value.cedula_cliente, () => {
     // Si estamos cargando datos de edición, NO borramos los detalles ni recargamos innecesariamente
     if (cargandoDatos.value) return;
 
-    // Sincronizar el input libre con el valor efectivo
-    cedulaInput.value = form.value.cedula_cliente || '';
+    // Sincronizar (ya no necesario manual input) -> Limpio
+    // cedulaInput.value = form.value.cedula_cliente || '';
 
     cargarFacturasCliente();
     // Limpiar selecciones previas
@@ -302,8 +225,9 @@ watch(() => form.value.cedula_cliente, () => {
 // Mantener input sincronizado cuando la lista de clientes cambie (por ejemplo al inicializar)
 watch(clientesDisponibles, () => {
     if (form.value.cedula_cliente) {
-        const found = clientesDisponibles.value.find(c => c.cedula === form.value.cedula_cliente);
-        selectedClientName.value = found ? found.nombre : '';
+        if (form.value.cedula_cliente) {
+            // El componente Autocomplete ya se encarga de mostrar el nombre si machea
+        }
     }
 });
 
@@ -352,6 +276,7 @@ onMounted(async () => {
                 cedula_cliente: data.cedula_cliente,
                 codigo_cuenta: data.codigo_cuenta,
                 descripcion: data.descripcion,
+                fecha: fechaLimpia,
                 detalles: (data.detalles || []).map((d: any) => {
                     const montoFromBackend = d.monto_pagado ?? d.monto_pagar ?? d.monto ?? 0;
                     return {
@@ -365,14 +290,9 @@ onMounted(async () => {
                 })
             };
 
-            // Rellenamos el input visual de cédula con el mismo formato que en crear (Nombre (Cédula))
-            cedulaInput.value = data.nombre_cliente ? `${data.cedula_cliente}` : data.cedula_cliente;
-            selectedClientName.value = data.nombre_cliente ?? '';
-
-            // Rellenamos el input visual de cuenta bancaria
-            cuentaInput.value = data.codigo_cuenta;
-            const cuentaEncontrada = cuentas.value.find(c => c.codigo === data.codigo_cuenta);
-            selectedCuentaInfo.value = cuentaEncontrada?.entidad_bancaria?.nombre ?? '';
+            // Rellenamos el input visual de cédula -> El v-model lo maneja solo
+            // La cuenta bancaria se vincula automáticamente vía v-model form.codigo_cuenta
+            // No necesitamos setear cuentaInput manualmente porque el componente lee de form.codigo_cuenta
 
             // Cargamos facturas manualmente porque el watch fue bloqueado
             // Pasamos el numero_pago para excluir este pago del cálculo de saldo
@@ -561,58 +481,34 @@ const guardar = async () => {
 
                         <form v-else @submit.prevent="guardar">
                             <div class="row g-3 mb-4">
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold"><i
-                                            class="bi bi-person-fill me-1"></i>Cliente</label>
-                                    <!-- Input libre para poder escribir la cédula y autoseleccionar -->
-                                    <input v-model="cedulaInput" @keyup.enter="seleccionarClientePorCedula"
-                                        @blur="seleccionarClientePorCedula" list="clientesList" type="text"
-                                        class="form-control"
-                                        :placeholder="isEditing ? '' : 'Ingrese cédula o seleccione...'"
-                                        :disabled="isEditing" required />
-
-                                    <datalist id="clientesList">
-                                        <option v-for="cli in filteredClientes" :key="cli.cedula" :value="cli.cedula">
-                                            {{ cli.nombre }}
-                                        </option>
-                                    </datalist>
-
-                                    <div v-if="selectedClientName" class="form-text text-muted mt-1">Nombre cliente:
-                                        <strong>{{ selectedClientName }}</strong>
-                                    </div>
+                                <div class="col-12 col-md-4">
+                                    <ClienteAutocomplete v-model="form.cedula_cliente" :clientes="clientesDisponibles"
+                                        label="Cliente" :disabled="isEditing" :required="true"
+                                        placeholder="Escriba cédula o nombre..." @select="onClienteSelect" />
                                 </div>
 
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold"><i class="bi bi-calendar-event me-1"></i>Fecha
-                                        Pago</label>
-                                    <div class="form-control bg-light" style="cursor: not-allowed;">
-                                        {{ fechaActual || 'Cargando...' }}
-                                    </div>
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label fw-bold" for="fechaPago">
+                                        <i class="bi bi-calendar-event me-1" aria-hidden="true"></i>Fecha Pago
+                                    </label>
+                                    <input v-model="fechaActual" type="text" class="form-control" id="fechaPago"
+                                        disabled aria-label="Fecha del pago"
+                                        title="La fecha de pagos es generada automáticamente">
                                 </div>
 
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold"><i class="bi bi-bank me-1"></i>Cuenta
-                                        Bancaria</label>
-                                    <input v-model="cuentaInput" @keyup.enter="seleccionarCuenta"
-                                        @blur="seleccionarCuenta" list="cuentasList" type="text" class="form-control"
-                                        placeholder="Buscar cuenta o banco..." required />
-
-                                    <datalist id="cuentasList">
-                                        <option v-for="cta in filteredCuentas" :key="cta.codigo" :value="cta.codigo">
-                                            {{ cta.entidad_bancaria?.nombre }}
-                                        </option>
-                                    </datalist>
-
-                                    <div v-if="selectedCuentaInfo" class="form-text text-muted mt-1">Banco:
-                                        <strong>{{ selectedCuentaInfo }}</strong>
-                                    </div>
+                                <div class="col-12 col-md-4">
+                                    <CuentaAutocomplete v-model="form.codigo_cuenta" :cuentas="cuentas"
+                                        label="Cuenta Bancaria" :required="true" placeholder="Buscar cuenta o banco..."
+                                        @select="onCuentaSelect" />
                                 </div>
 
                                 <div class="col-12">
-                                    <label class="form-label fw-bold"><i class="bi bi-card-text me-1"></i>Descripción /
-                                        Notas</label>
-                                    <input v-model="form.descripcion" type="text" class="form-control"
-                                        placeholder="Opcional">
+                                    <label class="form-label fw-bold" for="descripcion">
+                                        <i class="bi bi-card-text me-1" aria-hidden="true"></i>Descripción / Notas
+                                    </label>
+                                    <input v-model="form.descripcion" type="text" class="form-control" id="descripcion"
+                                        placeholder="Opcional" aria-label="Notas o descripción adicional del pago"
+                                        title="Campo opcional para agregar observaciones o referencias del pago">
                                 </div>
                             </div>
 
@@ -634,10 +530,29 @@ const guardar = async () => {
                                     Seleccione un cliente para ver sus facturas pendientes.
                                 </div>
 
-                                <!-- Loading de facturas -->
-                                <div v-if="cargandoFacturas" class="text-center py-4">
-                                    <span class="spinner-border text-primary me-2"></span>
-                                    <span class="text-muted">Cargando facturas del cliente...</span>
+                                <!-- Skeleton loading de facturas -->
+                                <div v-else-if="cargandoFacturas" class="py-3">
+                                    <div v-for="i in 4" :key="i" class="d-flex align-items-center py-2 border-bottom">
+                                        <div class="skeleton-box me-3"
+                                            style="width: 20px; height: 20px; border-radius: 4px;"></div>
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <div class="skeleton-box mb-1" style="width: 100px; height: 16px;">
+                                                    </div>
+                                                    <div class="skeleton-box" style="width: 180px; height: 12px;"></div>
+                                                </div>
+                                                <div class="text-end">
+                                                    <div class="skeleton-box mb-1" style="width: 80px; height: 16px;">
+                                                    </div>
+                                                    <div class="skeleton-box" style="width: 60px; height: 12px;"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-center text-muted small mt-2">
+                                        <i class="bi bi-clock-history me-1"></i>Cargando facturas del cliente...
+                                    </div>
                                 </div>
 
                                 <!-- Mensaje cuando no hay facturas (y no está cargando) -->
@@ -650,12 +565,17 @@ const guardar = async () => {
                                 <div v-else>
                                     <!-- Barra de búsqueda -->
                                     <div class="input-group mb-2">
-                                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                        <span class="input-group-text" aria-hidden="true">
+                                            <i class="bi bi-search"></i>
+                                        </span>
                                         <input type="text" class="form-control" v-model="busquedaFactura"
-                                            placeholder="Buscar factura por número o monto...">
+                                            placeholder="Buscar factura por número o monto..."
+                                            aria-label="Buscar entre las facturas disponibles"
+                                            title="Filtre facturas por número o monto para encontrar más rápido">
                                         <button v-if="busquedaFactura" type="button" class="btn btn-outline-secondary"
-                                            @click="busquedaFactura = ''">
-                                            <i class="bi bi-x-lg"></i>
+                                            @click="busquedaFactura = ''" aria-label="Limpiar búsqueda de facturas"
+                                            title="Limpiar filtro de búsqueda">
+                                            <i class="bi bi-x-lg" aria-hidden="true"></i>
                                         </button>
                                     </div>
 
@@ -718,22 +638,25 @@ const guardar = async () => {
                                                     </div>
 
                                                     <!-- Monto a Pagar (Input) -->
-                                                    <div class="col-md-3">
+                                                    <div class="col-12 col-md-3">
                                                         <label class="small text-muted d-block">Monto a Pagar</label>
                                                         <div class="input-group input-group-sm">
-                                                            <span class="input-group-text">$</span>
+                                                            <span class="input-group-text" aria-hidden="true">$</span>
                                                             <input type="number" class="form-control text-end"
                                                                 step="0.01" min="0"
                                                                 :max="Number(factura.saldo_pendiente)"
                                                                 :value="getMontoFactura(factura.numero_factura)"
                                                                 @input="actualizarMonto(factura.numero_factura, Number(($event.target as HTMLInputElement).value))"
                                                                 :class="{ 'is-invalid': montoExcedeSaldo(factura) }"
-                                                                :disabled="!isFacturaSeleccionada(factura.numero_factura)">
+                                                                :disabled="!isFacturaSeleccionada(factura.numero_factura)"
+                                                                :aria-label="`Monto a pagar para factura ${formatNumeroFactura(factura.numero_factura)}`"
+                                                                :title="`Máximo: $${Number(factura.saldo_pendiente).toFixed(2)}. Ingrese el monto que desea abonar a esta factura`">
                                                             <button type="button" class="btn btn-outline-success btn-sm"
-                                                                title="Pagar saldo completo"
+                                                                title="Establecer monto igual al saldo pendiente completo"
+                                                                :aria-label="`Pagar saldo completo de $${Number(factura.saldo_pendiente).toFixed(2)}`"
                                                                 @click="pagarTotalFactura(factura)"
                                                                 :disabled="!isFacturaSeleccionada(factura.numero_factura)">
-                                                                <i class="bi bi-arrow-up-circle"></i>
+                                                                <i class="bi bi-arrow-up-circle" aria-hidden="true"></i>
                                                             </button>
                                                         </div>
                                                         <div v-if="montoExcedeSaldo(factura)" class="text-danger small">
@@ -782,14 +705,19 @@ const guardar = async () => {
                             <div v-if="error" class="alert alert-danger mt-3"><i
                                     class="bi bi-exclamation-circle me-1"></i> {{ error }}</div>
 
-                            <div class="d-flex justify-content-end gap-2 mt-4">
-                                <button type="button" @click="router.push('/pagos')" class="btn btn-outline-secondary">
-                                    <i class="bi bi-x-lg me-1"></i>Cancelar
+                            <div class="d-flex flex-column flex-sm-row justify-content-end gap-2 mt-4">
+                                <button type="button" @click="router.push('/pagos')" class="btn btn-outline-secondary"
+                                    aria-label="Cancelar y volver a la lista de pagos"
+                                    title="Descarta los cambios y regresa a la lista de pagos">
+                                    <i class="bi bi-x-lg me-1" aria-hidden="true"></i>Cancelar
                                 </button>
                                 <button type="submit" class="btn btn-success px-4"
-                                    :disabled="saving || cantidadSeleccionadas === 0">
-                                    <span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>
-                                    <i v-else class="bi bi-check-lg me-1"></i>
+                                    :disabled="saving || cantidadSeleccionadas === 0"
+                                    :aria-label="isEditing ? 'Guardar cambios del pago' : 'Registrar nuevo pago'"
+                                    :title="cantidadSeleccionadas === 0 ? 'Seleccione al menos una factura para continuar' : (isEditing ? 'Actualizar el pago con los cambios realizados' : 'Finalizar el registro del nuevo pago')">
+                                    <span v-if="saving" class="spinner-border spinner-border-sm me-2"
+                                        aria-hidden="true"></span>
+                                    <i v-else class="bi bi-check-lg me-1" aria-hidden="true"></i>
                                     {{ isEditing ? 'Actualizar Pago' : 'Finalizar Pago' }}
                                 </button>
                             </div>
@@ -804,7 +732,7 @@ const guardar = async () => {
 <style scoped>
 /* Gradiente Azul Mejorado */
 .gradient-header {
-    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    background: #1a1a2e;
 }
 
 /* Transiciones suaves en cards de facturas */

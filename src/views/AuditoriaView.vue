@@ -297,7 +297,7 @@ onMounted(() => {
     <div class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h2 class="text-primary mb-1">Reporte de Auditorías</h2>
+                <h2 class="text-primary-gradient fw-bold mb-1">Reporte de Auditorías</h2>
                 <p class="text-muted small mb-0">Historial de acciones realizadas en el sistema</p>
             </div>
         </div>
@@ -306,8 +306,8 @@ onMounted(() => {
         <div class="card shadow-sm border-0 mb-4 bg-light">
             <div class="card-body py-2">
                 <div class="row align-items-center g-2">
-                    <div class="col-auto">
-                        <div class="d-flex align-items-center gap-2">
+                    <div class="col-12 col-lg-auto">
+                        <div class="d-flex flex-wrap align-items-center gap-2">
                             <label class="form-label mb-0 small text-muted">Desde:</label>
                             <input type="date" v-model="filtroFechaInicio" class="form-control form-control-sm"
                                 style="width: 140px;">
@@ -319,14 +319,16 @@ onMounted(() => {
                             </button>
                         </div>
                     </div>
-                    <div class="col text-end">
-                        <button @click="limpiarFiltros" class="btn btn-outline-secondary btn-sm me-2"
-                            title="Limpiar filtros">
-                            <i class="bi bi-x-circle"></i> Limpiar
-                        </button>
-                        <button @click="obtenerPistas" class="btn btn-outline-secondary btn-sm" title="Actualizar">
-                            <i class="bi bi-arrow-clockwise"></i> Refrescar
-                        </button>
+                    <div class="col-12 col-lg text-lg-end">
+                        <div class="d-flex justify-content-end gap-2">
+                            <button @click="limpiarFiltros" class="btn btn-outline-secondary btn-sm"
+                                title="Limpiar filtros">
+                                <i class="bi bi-x-circle"></i> Limpiar
+                            </button>
+                            <button @click="obtenerPistas" class="btn btn-outline-secondary btn-sm" title="Actualizar">
+                                <i class="bi bi-arrow-clockwise"></i> Refrescar
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="row mt-2" v-if="pagination">
@@ -342,10 +344,44 @@ onMounted(() => {
             </div>
         </div>
 
-        <!-- Loading -->
-        <div v-if="loading" class="text-center py-5">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted">Cargando pistas de auditoría...</p>
+        <!-- Loading Skeleton -->
+        <div v-if="loading" class="card shadow-sm border-0">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="i in 5" :key="i">
+                            <td>
+                                <div class="skeleton-box" style="width: 100px;"></div>
+                            </td>
+                            <td>
+                                <div class="skeleton-box" style="width: 80px;"></div>
+                            </td>
+                            <td>
+                                <div class="skeleton-box" style="width: 70px;"></div>
+                            </td>
+                            <td>
+                                <div class="skeleton-box" style="width: 150px;"></div>
+                            </td>
+                            <td>
+                                <div class="skeleton-box" style="width: 80px;"></div>
+                            </td>
+                            <td>
+                                <div class="skeleton-box" style="width: 90px;"></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Error -->
@@ -436,9 +472,20 @@ onMounted(() => {
                             </td>
                         </tr>
                         <tr v-if="pistas.length === 0">
-                            <td colspan="6" class="text-center py-5 text-muted">
-                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                                No se encontraron pistas de auditoría.
+                            <td colspan="6" class="text-center py-5">
+                                <div class="empty-state">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="currentColor"
+                                        class="bi bi-clipboard-data text-muted mb-3" viewBox="0 0 16 16">
+                                        <path
+                                            d="M4 11a1 1 0 1 1 2 0v1a1 1 0 1 1-2 0zm6-4a1 1 0 1 1 2 0v5a1 1 0 1 1-2 0zM7 9a1 1 0 0 1 2 0v3a1 1 0 1 1-2 0z" />
+                                        <path
+                                            d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1z" />
+                                        <path
+                                            d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0z" />
+                                    </svg>
+                                    <h5 class="text-muted mb-2">No hay registros de auditoría</h5>
+                                    <p class="text-secondary small mb-0">Las acciones del sistema aparecerán aquí</p>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -468,3 +515,70 @@ onMounted(() => {
         </div>
     </div>
 </template>
+
+<style scoped>
+.table-hover tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+/* Skeleton Loading Animation */
+.skeleton-box {
+    display: inline-block;
+    height: 16px;
+    background: linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Empty State */
+.empty-state {
+    padding: 2rem;
+}
+
+.empty-state svg {
+    opacity: 0.6;
+}
+
+/* Button improvements */
+.btn-primary {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.35);
+}
+
+/* Card con bordes redondeados */
+.card {
+    border-radius: 10px;
+}
+
+/* Barra de info con borde lateral azul */
+.card.bg-light {
+    border-left: 4px solid #0d6efd;
+    background: linear-gradient(90deg, rgba(13, 110, 253, 0.03) 0%, #f8f9fa 100%) !important;
+}
+
+/* Tabla header con gradiente azul sutil */
+thead.bg-light {
+    background: linear-gradient(180deg, #e7f1ff 0%, #f8f9fa 100%) !important;
+}
+
+thead.bg-light th {
+    border-bottom: 2px solid #0d6efd;
+}
+</style>
