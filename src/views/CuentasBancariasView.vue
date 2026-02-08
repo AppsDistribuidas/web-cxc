@@ -155,36 +155,36 @@ const irAPagina = (page: number) => {
     }
 };
 
-const eliminarCuenta = async (cuenta: Cuenta) => {
+const cambiarEstadoCuenta = async (cuenta: Cuenta) => {
     if (!can('Administración cuentas bancarias')) {
-        await showWarning('No tienes permiso para eliminar cuentas bancarias');
+        await showWarning('No tienes permiso para cambiar el estado de cuentas bancarias');
         return;
     }
 
+    const nuevoEstado = !cuenta.estado;
+    const accion = nuevoEstado ? 'activar' : 'desactivar';
+    const accionCapitalizada = nuevoEstado ? 'Activar' : 'Desactivar';
+
     const confirmed = await showConfirm(
-        `¿Estás seguro de desactivar la cuenta "${cuenta.codigo}"?`,
-        'Confirmar desactivación'
+        `¿Estás seguro de ${accion} la cuenta "${cuenta.codigo}"?`,
+        `Confirmar ${accion}ción`
     );
     if (!confirmed) return;
 
     try {
-        const payload = {
-            codigo: cuenta.codigo,
-            nombre_cuenta: cuenta.nombre_cuenta,
-            id_entidad_bancaria: cuenta.id_entidad_bancaria,
-            descripcion: cuenta.descripcion,
-            estado: false
-        };
+        const response = await api.patch(`/v1/cuentas-bancarias/${cuenta.codigo}/estado`, {
+            estado: nuevoEstado
+        });
 
-        await api.put(`/v1/cuentas-bancarias/${cuenta.codigo}`, payload);
-
-        cuenta.estado = false;
-        await showSuccess('La cuenta ha sido desactivada correctamente');
+        // Update local state
+        cuenta.estado = nuevoEstado;
+        
+        await showSuccess(response.data.message || `La cuenta ha sido ${accion}da correctamente`);
     } catch (e: any) {
         // Ignorar 401 - manejado globalmente por interceptor
         if (e.response?.status === 401) return;
         console.error(e);
-        await showError(e.response?.data?.message || 'Error desconocido al desactivar la cuenta');
+        await showError(e.response?.data?.message || `Error desconocido al ${accion} la cuenta`);
     }
 };
 
@@ -361,9 +361,11 @@ onMounted(async () => {
                                         <i class="bi bi-pencil"></i>
                                     </button>
 
-                                    <button @click="eliminarCuenta(cuenta)" class="btn btn-sm btn-outline-danger"
-                                        title="Desactivar" :disabled="!cuenta.estado">
-                                        <i class="bi bi-trash"></i>
+                                    <button 
+                                        @click="cambiarEstadoCuenta(cuenta)" 
+                                        :class="cuenta.estado ? 'btn btn-sm btn-outline-danger' : 'btn btn-sm btn-outline-success'"
+                                        :title="cuenta.estado ? 'Desactivar' : 'Activar'">
+                                        <i :class="cuenta.estado ? 'bi bi-x-circle' : 'bi bi-check-circle'"></i>
                                     </button>
                                 </div>
                             </td>
