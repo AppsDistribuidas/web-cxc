@@ -165,7 +165,7 @@ const pagarTotalFactura = (factura: any) => {
 const montoExcedeSaldo = (factura: any) => {
     const key = unformatNumeroFactura(factura.numero_factura);
     const item = facturasConSeleccion.value.get(key);
-    return (item?.monto ?? 0) > Number(factura.saldo_pendiente);
+    return item?.selected && (item?.monto ?? 0) > Number(factura.saldo_pendiente);
 };
 
 // Verificar si el monto es cero o negativo
