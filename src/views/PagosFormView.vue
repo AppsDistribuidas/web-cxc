@@ -416,7 +416,7 @@ const guardar = async () => {
     }
 
     if (hayMontoCero) {
-        await showWarning("Todas las facturas seleccionadas deben tener un monto mayor a $0.");
+        await showWarning("Hay facturas seleccionadas con un monto menor o igual a $0. Corrija los montos antes de continuar.");
         return;
     }
 
