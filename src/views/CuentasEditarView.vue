@@ -15,8 +15,7 @@ const form = ref<Partial<Cuenta>>({
     codigo: '',
     nombre_cuenta: '',
     descripcion: '',
-    id_entidad_bancaria: undefined,
-    estado: true
+    id_entidad_bancaria: undefined
 });
 
 const bancos = ref<EntidadBancaria[]>([]);
@@ -43,8 +42,7 @@ onMounted(async () => {
             codigo: data.codigo,
             nombre_cuenta: data.nombre_cuenta,
             descripcion: data.descripcion,
-            id_entidad_bancaria: data.id_entidad_bancaria,
-            estado: Boolean(data.estado)
+            id_entidad_bancaria: data.id_entidad_bancaria
         };
 
     } catch (e: any) {
@@ -170,18 +168,6 @@ const actualizar = async () => {
                                 </label>
                                 <textarea id="descripcion" v-model="form.descripcion" class="form-control" rows="3"
                                     placeholder="Detalles adicionales..."></textarea>
-                            </div>
-
-                            <div class="mb-4">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="estadoSwitch"
-                                        v-model="form.estado">
-                                    <label class="form-check-label fw-bold" for="estadoSwitch">
-                                        <i class="bi me-1"
-                                            :class="form.estado ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger'"></i>
-                                        {{ form.estado ? 'Cuenta Activa' : 'Cuenta Inactiva' }}
-                                    </label>
-                                </div>
                             </div>
 
                             <hr>
