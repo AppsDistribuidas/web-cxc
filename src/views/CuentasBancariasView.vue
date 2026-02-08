@@ -155,6 +155,16 @@ const irAPagina = (page: number) => {
     }
 };
 
+// Explicit mappings for correct Spanish grammar
+const accionNombre: Record<'activar' | 'desactivar', string> = {
+    activar: 'activación',
+    desactivar: 'desactivación'
+};
+const accionParticipio: Record<'activar' | 'desactivar', string> = {
+    activar: 'activada',
+    desactivar: 'desactivada'
+};
+
 const cambiarEstadoCuenta = async (cuenta: Cuenta) => {
     if (!can('Administración cuentas bancarias')) {
         await showWarning('No tienes permiso para cambiar el estado de cuentas bancarias');
@@ -167,7 +177,7 @@ const cambiarEstadoCuenta = async (cuenta: Cuenta) => {
 
     const confirmed = await showConfirm(
         `¿Estás seguro de ${accion} la cuenta "${cuenta.codigo}"?`,
-        `Confirmar ${accionCapitalizada} cuenta`
+        `Confirmar ${accionNombre[accion]}`
     );
     if (!confirmed) return;
 
@@ -179,7 +189,7 @@ const cambiarEstadoCuenta = async (cuenta: Cuenta) => {
         // Update local state
         cuenta.estado = nuevoEstado;
         
-        await showSuccess(response.data.message || `La cuenta ha sido ${accion}da correctamente`);
+        await showSuccess(response.data.message || `La cuenta ha sido ${accionParticipio[accion]} correctamente`);
     } catch (e: any) {
         // Ignorar 401 - manejado globalmente por interceptor
         if (e.response?.status === 401) return;
