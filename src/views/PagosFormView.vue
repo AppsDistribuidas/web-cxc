@@ -117,10 +117,11 @@ const toggleFactura = (numeroFactura: string) => {
     }
 };
 
-// Seleccionar/Deseleccionar todas
+// Seleccionar/Deseleccionar todas (solo facturas seleccionables)
 const todasSeleccionadas = computed(() => {
-    if (facturasDisponibles.value.length === 0) return false;
-    return facturasDisponibles.value.every(f =>
+    const seleccionables = facturasDisponibles.value.filter(f => f.selectable !== false);
+    if (seleccionables.length === 0) return false;
+    return seleccionables.every(f =>
         facturasConSeleccion.value.get(unformatNumeroFactura(f.numero_factura))?.selected
     );
 });
@@ -128,11 +129,14 @@ const todasSeleccionadas = computed(() => {
 const toggleTodas = () => {
     const nuevoEstado = !todasSeleccionadas.value;
     facturasDisponibles.value.forEach(f => {
-        const key = unformatNumeroFactura(f.numero_factura);
-        const item = facturasConSeleccion.value.get(key);
-        if (item) {
-            item.selected = nuevoEstado;
-            if (nuevoEstado) item.monto = Number(f.saldo_pendiente);
+        // Solo toggle facturas seleccionables (pendientes)
+        if (f.selectable !== false) {
+            const key = unformatNumeroFactura(f.numero_factura);
+            const item = facturasConSeleccion.value.get(key);
+            if (item) {
+                item.selected = nuevoEstado;
+                if (nuevoEstado) item.monto = Number(f.saldo_pendiente);
+            }
         }
     });
 };
@@ -614,7 +618,8 @@ const guardar = async () => {
                                                 <input type="checkbox" class="form-check-input" id="selectAll"
                                                     :checked="todasSeleccionadas" @change="toggleTodas">
                                                 <label class="form-check-label fw-bold" for="selectAll">
-                                                    Seleccionar Todas ({{ facturasDisponibles.length }})
+                                                    Seleccionar Todas ({{facturasDisponibles.filter(f => f.selectable
+                                                    !== false).length }})
                                                 </label>
                                             </div>
                                             <div class="text-end">
@@ -636,7 +641,8 @@ const guardar = async () => {
                                         <div v-for="factura in facturasFiltradas" :key="factura.numero_factura"
                                             class="card mb-2 border-2" :class="{
                                                 'border-success bg-success-subtle': isFacturaSeleccionada(factura.numero_factura),
-                                                'border-secondary': !isFacturaSeleccionada(factura.numero_factura)
+                                                'border-secondary': !isFacturaSeleccionada(factura.numero_factura),
+                                                'opacity-75': factura.selectable === false
                                             }">
                                             <div class="card-body py-2 px-3">
                                                 <div class="row align-items-center g-2">
@@ -646,9 +652,11 @@ const guardar = async () => {
                                                             <input type="checkbox" class="form-check-input"
                                                                 :id="'fact-' + unformatNumeroFactura(factura.numero_factura)"
                                                                 :checked="isFacturaSeleccionada(factura.numero_factura)"
+                                                                :disabled="factura.selectable === false"
                                                                 @change="toggleFactura(factura.numero_factura)">
                                                             <label class="form-check-label fw-bold"
-                                                                :for="'fact-' + unformatNumeroFactura(factura.numero_factura)">
+                                                                :for="'fact-' + unformatNumeroFactura(factura.numero_factura)"
+                                                                :class="{ 'text-muted': factura.selectable === false }">
                                                                 {{ formatNumeroFactura(factura.numero_factura) }}
                                                             </label>
                                                         </div>
@@ -660,7 +668,8 @@ const guardar = async () => {
                                                     <!-- Saldo Pendiente -->
                                                     <div class="col-md-2 text-center">
                                                         <div class="small text-muted">Saldo</div>
-                                                        <div class="fw-bold text-danger">
+                                                        <div class="fw-bold"
+                                                            :class="factura.selectable === false ? 'text-muted' : 'text-danger'">
                                                             ${{ Number(factura.saldo_pendiente).toFixed(2) }}
                                                         </div>
                                                     </div>
@@ -698,12 +707,15 @@ const guardar = async () => {
                                                     <div class="col-md-3 text-end">
                                                         <div class="small text-muted">Saldo Restante</div>
                                                         <div class="fw-bold" :class="{
-                                                            'text-success': getSaldoRestante(factura) === 0 && isFacturaSeleccionada(factura.numero_factura),
+                                                            'text-success': (getSaldoRestante(factura) === 0 && isFacturaSeleccionada(factura.numero_factura)) || factura.selectable === false,
                                                             'text-warning': getSaldoRestante(factura) > 0 && isFacturaSeleccionada(factura.numero_factura),
-                                                            'text-muted': !isFacturaSeleccionada(factura.numero_factura)
+                                                            'text-muted': !isFacturaSeleccionada(factura.numero_factura) && factura.selectable !== false
                                                         }">
+                                                            <template v-if="factura.selectable === false">
+                                                                <i class="bi bi-check-circle-fill"></i> PAGADA
+                                                            </template>
                                                             <template
-                                                                v-if="isFacturaSeleccionada(factura.numero_factura)">
+                                                                v-else-if="isFacturaSeleccionada(factura.numero_factura)">
                                                                 ${{ getSaldoRestante(factura).toFixed(2) }}
                                                                 <i v-if="getSaldoRestante(factura) === 0"
                                                                     class="bi bi-check-circle-fill text-success ms-1"></i>
