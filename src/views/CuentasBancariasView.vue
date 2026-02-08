@@ -155,6 +155,16 @@ const irAPagina = (page: number) => {
     }
 };
 
+// Explicit mappings for correct Spanish grammar
+const accionNombre: Record<'activar' | 'desactivar', string> = { 
+    activar: 'activación', 
+    desactivar: 'desactivación' 
+};
+const accionParticipio: Record<'activar' | 'desactivar', string> = { 
+    activar: 'activada', 
+    desactivar: 'desactivada' 
+};
+
 const cambiarEstadoCuenta = async (cuenta: Cuenta) => {
     if (!can('Administración cuentas bancarias')) {
         await showWarning('No tienes permiso para cambiar el estado de cuentas bancarias');
@@ -164,16 +174,6 @@ const cambiarEstadoCuenta = async (cuenta: Cuenta) => {
     const nuevoEstado = !cuenta.estado;
     const accion = nuevoEstado ? 'activar' : 'desactivar';
     const accionCapitalizada = nuevoEstado ? 'Activar' : 'Desactivar';
-    
-    // Explicit mappings for correct Spanish grammar
-    const accionNombre: { [key: string]: string } = { 
-        activar: 'activación', 
-        desactivar: 'desactivación' 
-    };
-    const accionParticipio: { [key: string]: string } = { 
-        activar: 'activada', 
-        desactivar: 'desactivada' 
-    };
 
     const confirmed = await showConfirm(
         `¿Estás seguro de ${accion} la cuenta "${cuenta.codigo}"?`,
