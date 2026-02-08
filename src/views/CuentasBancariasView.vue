@@ -167,7 +167,7 @@ const cambiarEstadoCuenta = async (cuenta: Cuenta) => {
 
     const confirmed = await showConfirm(
         `¿Estás seguro de ${accion} la cuenta "${cuenta.codigo}"?`,
-        `Confirmar ${accion}ción`
+        `Confirmar ${accionCapitalizada} cuenta`
     );
     if (!confirmed) return;
 
