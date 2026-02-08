@@ -288,7 +288,8 @@ const imprimirComprobante = async (numeroPago: string, isProcesado: boolean = fa
     } catch (e: any) {
         // Ignorar 401 - manejado globalmente por interceptor
         if (e.response?.status === 401) return;
-        await showError("Error al descargar el comprobante.");
+        const mensaje = e.response?.data?.message || "Error al descargar el comprobante.";
+        await showError(mensaje);
     }
 };
 
@@ -324,7 +325,8 @@ const imprimirMasivo = async () => {
         obtenerPagos(currentPage.value);
     } catch (e: any) {
         if (e.response?.status === 401) return;
-        await showError('Error al imprimir los comprobantes.');
+        const mensaje = e.response?.data?.message || 'Error al imprimir los comprobantes.';
+        await showError(mensaje);
     }
 };
 
