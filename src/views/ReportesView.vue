@@ -59,7 +59,10 @@ const validarFechas = (fechaInicio: string, fechaFin: string): boolean => {
 
 // Validación de cliente
 const validarCliente = (cedula: string): boolean => {
-    if (!cedula) return true; // Cliente es opcional en reporte de pagos
+    if (!cedula) {
+        showError('Debe seleccionar un cliente para generar el reporte.', 'Cliente requerido');
+        return false;
+    }
     const existe = clientesDisponibles.value.some(c => c.cedula === cedula);
     if (!existe) {
         showError(`No se encontró un cliente con la cédula "${cedula}".`, 'Cliente no encontrado');
@@ -474,7 +477,7 @@ const validarReporteGeneradoEstado = (): boolean => {
                         <!-- Campos de filtro primero -->
                         <div class="col-12 col-md-4">
                             <ClienteAutocomplete v-model="pagosFilter.cedula_cliente" :clientes="clientesDisponibles"
-                                label="Buscar Cliente (Opcional)" placeholder="Escriba cédula o nombre..."
+                                label="Cliente" :required="true" placeholder="Escriba cédula o nombre..."
                                 @select="onClienteSelectPagos" />
                         </div>
                         <div class="col-6 col-md-2">
@@ -553,6 +556,13 @@ const validarReporteGeneradoEstado = (): boolean => {
                             <div>
                                 <strong>Pago {{ p.numero_pago }}</strong>
                                 <span class="text-muted mx-2">|</span>
+                                <span
+                                    :class="(p.estado && p.fecha_impresion) ? 'badge bg-success' : (!p.estado ? 'badge bg-danger' : 'badge bg-warning text-dark')"
+                                    style="font-size: 0.75rem;">
+                                    {{ (p.estado && p.fecha_impresion) ? 'Procesado' : (!p.estado ? 'Inactivo' :
+                                    'Pendiente') }}
+                                </span>
+                                <span class="text-muted mx-2">|</span>
                                 <small>Fecha: {{ p.fecha?.substring(0, 10) }}</small>
                                 <span class="text-muted mx-2">|</span>
                                 <small class="text-primary">{{ p.nombre_cliente }}</small>
@@ -591,7 +601,7 @@ const validarReporteGeneradoEstado = (): boolean => {
                                         <td class="text-end text-muted">${{ Number(d.total_factura || 0).toFixed(2) }}
                                         </td>
                                         <td class="text-end fw-bold text-success">${{ Number(d.monto_pagado).toFixed(2)
-                                            }}</td>
+                                        }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -740,7 +750,7 @@ const validarReporteGeneradoEstado = (): boolean => {
                     <div class="bg-light border rounded p-3 mb-4 text-center">
                         <div class="text-muted small">SALDO INICIAL</div>
                         <div class="fs-3 fw-bold text-secondary">${{ Number(estadoCuentaData.saldo_inicial).toFixed(2)
-                        }}</div>
+                            }}</div>
                         <div class="text-muted small">(Deuda acumulada antes del {{ estadoCuentaData.periodo?.desde }})
                         </div>
                     </div>
@@ -1015,7 +1025,7 @@ const validarReporteGeneradoEstado = (): boolean => {
                                         </td>
                                         <td>
                                             <span class="fw-medium">{{ obtenerNombreCliente(doc.cedula)
-                                            }}</span>
+                                                }}</span>
                                             <small v-if="doc.cedula !== 'todos'" class="text-muted d-block">{{
                                                 doc.cedula }}</small>
                                         </td>
@@ -1039,7 +1049,7 @@ const validarReporteGeneradoEstado = (): boolean => {
                                 <li v-for="p in historialTotalPaginas" :key="p" class="page-item"
                                     :class="{ active: historialPaginaActual === p }">
                                     <button class="page-link" @click="historialPaginaActual = p">{{ p
-                                    }}</button>
+                                        }}</button>
                                 </li>
                                 <li class="page-item"
                                     :class="{ disabled: historialPaginaActual === historialTotalPaginas }">

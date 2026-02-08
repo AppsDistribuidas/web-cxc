@@ -241,6 +241,32 @@ const anularPago = async (pago: any) => {
     }
 };
 
+const cambiarEstadoPago = async (pago: any, nuevoEstado: boolean) => {
+    const accion = nuevoEstado ? 'activar' : 'desactivar';
+    const titulo = nuevoEstado ? 'Activar pago' : 'Desactivar pago';
+    const mensaje = `¿Está seguro de ${accion} el pago ${pago.numero_pago}?`;
+
+    const confirmed = await showConfirm(mensaje, titulo);
+    if (!confirmed) return;
+
+    try {
+        const response = await api.patch(`/v1/pagos/${pago.numero_pago}/estado`, {
+            estado: nuevoEstado
+        });
+
+        if (response.data.success) {
+            await showSuccess(response.data.message);
+            obtenerPagos(currentPage.value);
+        }
+    } catch (e: any) {
+        // Ignorar 401 - manejado globalmente por interceptor
+        if (e.response?.status === 401) return;
+        const mensaje = e.response?.data?.message || `Error al ${accion} el pago`;
+        await showError(mensaje);
+    }
+};
+
+
 const imprimirComprobante = async (numeroPago: string, isProcesado: boolean = false) => {
     const mensaje = isProcesado
         ? '¿Desea reimprimir el comprobante de pago?'
@@ -443,11 +469,11 @@ onMounted(() => {
                             <th class="text-center ps-3 sticky-col-2">Acciones</th>
                             <th @click="toggleSort('numero_pago')" class="ps-4 fw-bold" style="cursor:pointer">
                                 No. Pago <small v-if="sortBy === 'numero_pago'">{{ sortOrder === 'asc' ? '▲' : '▼'
-                                }}</small>
+                                    }}</small>
                             </th>
                             <th @click="toggleSort('cedula_cliente')" class="fw-bold" style="cursor:pointer">
                                 Cliente <small v-if="sortBy === 'cedula_cliente'">{{ sortOrder === 'asc' ? '▲' : '▼'
-                                }}</small>
+                                    }}</small>
                             </th>
                             <th class="text-center fw-bold">Cuenta</th>
                             <th @click="toggleSort('fecha')" class="fw-bold" style="cursor:pointer">
@@ -510,6 +536,14 @@ onMounted(() => {
                             </td>
                             <td class="text-center ps-3 sticky-col-2">
                                 <div class="btn-group">
+                                    <!-- Botón Activar (solo para pagos inactivos) -->
+                                    <button v-if="!pago.estado" @click="cambiarEstadoPago(pago, true)"
+                                        class="btn btn-sm btn-outline-success"
+                                        :title="`Activar pago ${pago.numero_pago}`"
+                                        :aria-label="`Activar pago número ${pago.numero_pago}`">
+                                        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+                                    </button>
+
                                     <button v-if="!pago.fecha_impresion && pago.estado"
                                         @click="router.push(`/pagos/${pago.numero_pago}/editar`)"
                                         class="btn btn-sm btn-outline-primary"
