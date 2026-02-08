@@ -288,7 +288,23 @@ const imprimirComprobante = async (numeroPago: string, isProcesado: boolean = fa
     } catch (e: any) {
         // Ignorar 401 - manejado globalmente por interceptor
         if (e.response?.status === 401) return;
-        const mensaje = e.response?.data?.message || "Error al descargar el comprobante.";
+
+        // Cuando responseType es 'blob', los errores vienen como Blob
+        // Necesitamos convertirlo a texto para leer el mensaje
+        let mensaje = "Error al descargar el comprobante.";
+
+        if (e.response?.data instanceof Blob) {
+            try {
+                const text = await e.response.data.text();
+                const errorData = JSON.parse(text);
+                mensaje = errorData.message || mensaje;
+            } catch {
+                // Si no se puede parsear, usar mensaje por defecto
+            }
+        } else if (e.response?.data?.message) {
+            mensaje = e.response.data.message;
+        }
+
         await showError(mensaje);
     }
 };
@@ -325,7 +341,22 @@ const imprimirMasivo = async () => {
         obtenerPagos(currentPage.value);
     } catch (e: any) {
         if (e.response?.status === 401) return;
-        const mensaje = e.response?.data?.message || 'Error al imprimir los comprobantes.';
+
+        // Cuando responseType es 'blob', los errores vienen como Blob
+        let mensaje = 'Error al imprimir los comprobantes.';
+
+        if (e.response?.data instanceof Blob) {
+            try {
+                const text = await e.response.data.text();
+                const errorData = JSON.parse(text);
+                mensaje = errorData.message || mensaje;
+            } catch {
+                // Si no se puede parsear, usar mensaje por defecto
+            }
+        } else if (e.response?.data?.message) {
+            mensaje = e.response.data.message;
+        }
+
         await showError(mensaje);
     }
 };
