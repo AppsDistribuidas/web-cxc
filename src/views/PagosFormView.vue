@@ -387,11 +387,9 @@ const guardar = async () => {
     const detallesSeleccionados: { numero_factura: string; monto_pagar: number }[] = [];
     let hayMontoExcedido = false;
     let hayMontoCero = false;
-    let cantidadSeleccionadas = 0;
 
     facturasConSeleccion.value.forEach((item, key) => {
         if (item.selected) {
-            cantidadSeleccionadas++;
             const factura = facturasDisponibles.value.find(f => unformatNumeroFactura(f.numero_factura) === key);
             if (factura && item.monto > Number(factura.saldo_pendiente)) {
                 hayMontoExcedido = true;
@@ -408,7 +406,7 @@ const guardar = async () => {
         }
     });
 
-    if (cantidadSeleccionadas === 0) {
+    if (cantidadSeleccionadas.value === 0) {
         await showWarning("Debe seleccionar al menos una factura con monto a pagar.");
         return;
     }
