@@ -59,10 +59,7 @@ const validarFechas = (fechaInicio: string, fechaFin: string): boolean => {
 
 // Validación de cliente
 const validarCliente = (cedula: string): boolean => {
-    if (!cedula) {
-        showError('Debe seleccionar un cliente para generar el reporte.', 'Cliente requerido');
-        return false;
-    }
+    if (!cedula) return true; // Cliente es opcional en reporte de pagos
     const existe = clientesDisponibles.value.some(c => c.cedula === cedula);
     if (!existe) {
         showError(`No se encontró un cliente con la cédula "${cedula}".`, 'Cliente no encontrado');
@@ -477,7 +474,7 @@ const validarReporteGeneradoEstado = (): boolean => {
                         <!-- Campos de filtro primero -->
                         <div class="col-12 col-md-4">
                             <ClienteAutocomplete v-model="pagosFilter.cedula_cliente" :clientes="clientesDisponibles"
-                                label="Cliente" :required="true" placeholder="Escriba cédula o nombre..."
+                                label="Buscar Cliente (Opcional)" placeholder="Escriba cédula o nombre..."
                                 @select="onClienteSelectPagos" />
                         </div>
                         <div class="col-6 col-md-2">
