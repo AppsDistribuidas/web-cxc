@@ -164,10 +164,20 @@ const cambiarEstadoCuenta = async (cuenta: Cuenta) => {
     const nuevoEstado = !cuenta.estado;
     const accion = nuevoEstado ? 'activar' : 'desactivar';
     const accionCapitalizada = nuevoEstado ? 'Activar' : 'Desactivar';
+    
+    // Explicit mappings for correct Spanish grammar
+    const accionNombre: { [key: string]: string } = { 
+        activar: 'activación', 
+        desactivar: 'desactivación' 
+    };
+    const accionParticipio: { [key: string]: string } = { 
+        activar: 'activada', 
+        desactivar: 'desactivada' 
+    };
 
     const confirmed = await showConfirm(
         `¿Estás seguro de ${accion} la cuenta "${cuenta.codigo}"?`,
-        `Confirmar ${accion}ción`
+        `Confirmar ${accionNombre[accion]}`
     );
     if (!confirmed) return;
 
@@ -179,7 +189,7 @@ const cambiarEstadoCuenta = async (cuenta: Cuenta) => {
         // Update local state
         cuenta.estado = nuevoEstado;
         
-        await showSuccess(response.data.message || `La cuenta ha sido ${accion}da correctamente`);
+        await showSuccess(response.data.message || `La cuenta ha sido ${accionParticipio[accion]} correctamente`);
     } catch (e: any) {
         // Ignorar 401 - manejado globalmente por interceptor
         if (e.response?.status === 401) return;
