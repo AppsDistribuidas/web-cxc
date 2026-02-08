@@ -156,13 +156,13 @@ const irAPagina = (page: number) => {
 };
 
 // Explicit mappings for correct Spanish grammar
-const accionNombre: Record<'activar' | 'desactivar', string> = { 
-    activar: 'activación', 
-    desactivar: 'desactivación' 
+const accionNombre: Record<'activar' | 'desactivar', string> = {
+    activar: 'activación',
+    desactivar: 'desactivación'
 };
-const accionParticipio: Record<'activar' | 'desactivar', string> = { 
-    activar: 'activada', 
-    desactivar: 'desactivada' 
+const accionParticipio: Record<'activar' | 'desactivar', string> = {
+    activar: 'activada',
+    desactivar: 'desactivada'
 };
 
 const cambiarEstadoCuenta = async (cuenta: Cuenta) => {
