@@ -254,10 +254,15 @@ const cambiarEstadoPago = async (pago: any, nuevoEstado: boolean) => {
             estado: nuevoEstado
         });
 
-        if (response.data.success) {
-            await showSuccess(response.data.message);
-            obtenerPagos(currentPage.value);
+        if (response.data?.success === false) {
+            const mensajeError = response.data?.message || `Error al ${accion} el pago`;
+            await showError(mensajeError);
+            return;
         }
+
+        const mensajeExito = response.data?.message || `Pago ${accion}do correctamente.`;
+        await showSuccess(mensajeExito);
+        obtenerPagos(currentPage.value);
     } catch (e: any) {
         // Ignorar 401 - manejado globalmente por interceptor
         if (e.response?.status === 401) return;
