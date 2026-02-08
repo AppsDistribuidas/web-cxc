@@ -406,7 +406,7 @@ const guardar = async () => {
         }
     });
 
-    if (detallesSeleccionados.length === 0) {
+    if (cantidadSeleccionadas.value === 0) {
         await showWarning("Debe seleccionar al menos una factura con monto a pagar.");
         return;
     }
