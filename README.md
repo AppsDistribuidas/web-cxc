@@ -1,70 +1,72 @@
-# web-cxc
+# Portal Web - Sistema de Cuentas por Cobrar (CxC)
 
-This template should help get you started developing with Vue 3 in Vite.
+## 🎯 Problema de Negocio que Resuelve
 
-## Recommended IDE Setup
+En muchas empresas, el equipo de finanzas, ventas y administración interactúa con múltiples sistemas o planillas de Excel para hacer seguimiento a los pagos de los clientes, lo que dificulta la comunicación y propicia los errores humanos.
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+Este **Portal Web de Cuentas por Cobrar (Frontend)** es la interfaz orientada al usuario que resuelve el problema de la fragmentación visual y operativa. Permite al personal de la empresa:
+- **Gestión visual intuitiva:** Operar todo el ciclo de ingresos (cuentas bancarias, entidades, clientes y pagos) desde una única pantalla moderna y accesible.
+- **Reducción de errores manuales:** Facilita la carga de detalles de pago y la validación de montos mediante interfaces claras que se comunican directamente con la lógica central de negocio.
+- **Acceso a la información en tiempo real:** Ofrece a los tomadores de decisiones reportes y vistas rápidas sobre el estado del flujo de caja, los pagos procesados y los pagos pendientes, mejorando la velocidad de respuesta comercial.
 
-## Recommended Browser Setup
+---
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd) 
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+## 🛠 Tecnologías Utilizadas
 
-## Type Support for `.vue` Imports in TS
+Este proyecto es una aplicación web moderna construida con tecnologías ágiles y de alto rendimiento:
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+- **Empaquetador/Build Tool:** [Vite](https://vitejs.dev/) (Rápido y eficiente)
+- **Lenguaje Principal:** [TypeScript](https://www.typescriptlang.org/) para un tipado estricto y un código más seguro.
+- **Pruebas Unitarias:** [Vitest](https://vitest.dev/)
+- **Pruebas E2E (End-to-End):** [Cypress](https://www.cypress.io/)
+- **Linter y Formateo:** ESLint y Prettier.
 
-## Customize configuration
+## 🚀 Requisitos Previos
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+Asegúrate de tener instalado en tu entorno de desarrollo local:
+- [Node.js](https://nodejs.org/) (se recomienda versión LTS)
+- Un gestor de paquetes (`npm`, `yarn`, `pnpm` o `bun`)
 
-## Project Setup
+## ⚙️ Instalación y Ejecución
 
-```sh
-npm install
-```
+1. **Clonar/Navegar a la carpeta del proyecto:**
+   ```bash
+   cd web-cxc
+   ```
 
-### Compile and Hot-Reload for Development
+2. **Instalar dependencias:**
+   ```bash
+   npm install
+   ```
 
-```sh
-npm run dev
-```
+3. **Ejecutar en servidor de desarrollo:**
+   ```bash
+   npm run dev
+   ```
+   *El servidor de desarrollo iniciará por lo general en `http://localhost:5173/` con Hot Module Replacement (HMR).*
 
-### Type-Check, Compile and Minify for Production
+4. **Construir para Producción:**
+   ```bash
+   npm run build
+   ```
+   Esto generará una carpeta `dist/` lista para ser desplegada en un servidor web estático.
 
-```sh
-npm run build
-```
+## 🧪 Pruebas (Testing)
 
-### Run Unit Tests with [Vitest](https://vitest.dev/)
+El proyecto cuenta con un entorno de pruebas robusto.
 
-```sh
-npm run test:unit
-```
+- **Pruebas Unitarias (Vitest):**
+  ```bash
+  npm run test:unit
+  ```
+  *(o el script correspondiente definido en `package.json`)*
 
-### Run End-to-End Tests with [Cypress](https://www.cypress.io/)
+- **Pruebas End-to-End (Cypress):**
+  ```bash
+  npm run test:e2e
+  ```
+  *(o el script correspondiente definido en `package.json`)*
 
-```sh
-npm run test:e2e:dev
-```
+## 📄 Licencia
 
-This runs the end-to-end tests against the Vite development server.
-It is much faster than the production build.
-
-But it's still recommended to test the production build with `test:e2e` before deploying (e.g. in CI environments):
-
-```sh
-npm run build
-npm run test:e2e
-```
-
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
-npm run lint
-```
+Este proyecto es de uso exclusivo o licenciado bajo los términos que defina la empresa o propietario del software.
